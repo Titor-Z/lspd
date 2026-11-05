@@ -52,6 +52,8 @@ name = "lspd-json"
 version = "0.1.0"
 dependencies = [
  "lspd-core",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
