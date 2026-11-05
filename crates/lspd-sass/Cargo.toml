@@ -1,0 +1,11 @@
+[package]
+name = "lspd-sass"
+description = "Sass 缩进语法语言服务，复用 CSS 侧的语法树与数据表"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+lspd-core.workspace = true
+lspd-css.workspace = true

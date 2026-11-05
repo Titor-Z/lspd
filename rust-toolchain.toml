@@ -1,0 +1,5 @@
+# 与 ~/mio 的 compiler/ workspace 保持一致：tsrs 系列 crate 的 rust-version 是 1.99。
+# lspd-ts 一旦桥接 tsrs_lsp，整个 workspace 就必须能编 tsrs，故在此固定同一工具链。
+[toolchain]
+channel = "1.99.1"
+profile = "default"

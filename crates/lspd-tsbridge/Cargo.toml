@@ -1,0 +1,7 @@
+[package]
+name = "lspd-tsbridge"
+description = "TypeScript/JavaScript 语言服务，桥接 compiler/ 下的 tsrs_lsp"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true

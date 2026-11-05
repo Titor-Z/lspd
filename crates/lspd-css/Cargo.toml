@@ -1,0 +1,15 @@
+[package]
+name = "lspd-css"
+description = "CSS 语言服务：容错解析与数据驱动的补全、悬停、诊断，覆盖 css/scss/less"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+lspd-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[build-dependencies]
+serde_json.workspace = true

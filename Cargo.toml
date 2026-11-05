@@ -1,0 +1,37 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+# 与 compiler/（源自 tsrs，rust-version = 1.99）保持一致，桥接后无需两套工具链。
+rust-version = "1.99"
+# 许可与发布渠道未定，先阻断误发布。
+publish = false
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["raw_value"] }
+rustc-hash = "2"
+
+lspd-core = { path = "crates/lspd-core" }
+lspd-html = { path = "crates/lspd-html" }
+lspd-css = { path = "crates/lspd-css" }
+lspd-sass = { path = "crates/lspd-sass" }
+lspd-json = { path = "crates/lspd-json" }
+lspd-tsbridge = { path = "crates/lspd-tsbridge" }
+
+# 内存优先：不引入 tokio（每 worker 栈 + reactor）与 rayon，事件循环为单线程。
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
+panic = "unwind"
+
+# 基准必须贴近发布档，否则 RSS 数字没有参考价值。
+[profile.bench]
+inherits = "release"
+debug = 1
+strip = "none"

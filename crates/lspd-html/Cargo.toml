@@ -1,0 +1,15 @@
+[package]
+name = "lspd-html"
+description = "HTML 语言服务：容错解析、补全、悬停、结构诊断、大纲与标签联动"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+lspd-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[build-dependencies]
+serde_json.workspace = true

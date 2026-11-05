@@ -1,0 +1,30 @@
+[package]
+name = "lspd"
+description = "低内存多语言语言服务器：单可执行文件，按子命令与 feature 装载语言后端"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "lspd"
+path = "src/main.rs"
+
+[features]
+default = ["ts", "web"]
+# TypeScript / JavaScript
+ts = ["dep:lspd-tsbridge"]
+# 网页技术栈聚合：只声明聚合关系，不单独持有依赖
+web = ["html", "css", "sass", "json"]
+html = ["dep:lspd-html"]
+css = ["dep:lspd-css"]
+sass = ["dep:lspd-sass"]
+json = ["dep:lspd-json"]
+
+[dependencies]
+lspd-core.workspace = true
+lspd-html = { workspace = true, optional = true }
+lspd-css = { workspace = true, optional = true }
+lspd-sass = { workspace = true, optional = true }
+lspd-json = { workspace = true, optional = true }
+lspd-tsbridge = { workspace = true, optional = true }
