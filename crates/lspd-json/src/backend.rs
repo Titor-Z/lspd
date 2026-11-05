@@ -3,7 +3,7 @@
 //! 缓存只保留当前文档的一份语法树，按 URI 与版本失效，关闭文档即释放。
 //! schema 驱动的补全与校验在 `schema` 侧接入（见 M5.2）。
 
-use lspd_core::docs::{Document, DocumentStore};
+use lspd_core::docs::{Document, DocumentStore, Position};
 use lspd_core::text::{LineIndex, Span};
 use lspd_core::{Backend, Outgoing, ResponseError};
 use serde::Deserialize;
@@ -11,6 +11,7 @@ use serde_json::value::RawValue;
 use serde_json::{Value, json};
 
 use crate::parser::{self, Diagnostic, ParseResult, Severity, Value as Json};
+use crate::schema;
 
 /// LSP SymbolKind 取值。
 const KIND_PROPERTY: u8 = 7;
@@ -44,29 +45,40 @@ struct ParseCache {
     uri: String,
     version: i32,
     parsed: ParseResult,
+    /// 从 `$schema` 加载的本地 schema；不可用为 `None`
+    schema: Option<Value>,
 }
 
 impl JsonBackend {
-    /// 取当前文档的解析结果，必要时重新解析。
-    fn parsed(&mut self, document: &Document) -> &ParseResult {
+    /// 确保当前文档已解析并加载 schema，必要时重做。
+    fn ensure(&mut self, document: &Document) {
         let fresh = self.cache.as_ref().is_some_and(|cache| cache.uri == document.uri() && cache.version == document.version());
 
-        if !fresh {
-            self.cache = Some(ParseCache {
-                uri: document.uri().to_string(),
-                version: document.version(),
-                parsed: parser::parse(document.text()),
-            });
+        if fresh {
+            return;
         }
 
-        &self.cache.as_ref().expect("缓存刚写入").parsed
+        let parsed = parser::parse(document.text());
+        let schema = schema::load(document.text(), &parsed.value, document.uri());
+        self.cache = Some(ParseCache {
+            uri: document.uri().to_string(),
+            version: document.version(),
+            parsed,
+            schema,
+        });
     }
 
-    /// 发布一份文档的诊断。
+    /// 发布一份文档的诊断：语法诊断 + schema 校验诊断。
     fn publish(&mut self, document: &Document, out: &mut Vec<Outgoing>) {
-        let parsed = self.parsed(document);
+        self.ensure(document);
+
+        let cache = self.cache.as_ref().expect("刚写入缓存");
         let lines = LineIndex::new(document.text());
-        let items: Vec<Value> = parsed.diagnostics.iter().map(|item| diagnostic(&lines, item)).collect();
+        let mut items: Vec<Value> = cache.parsed.diagnostics.iter().map(|item| diagnostic(&lines, item)).collect();
+
+        if let Some(schema) = &cache.schema {
+            items.extend(schema::validate(document.text(), &cache.parsed.value, schema, &lines));
+        }
 
         out.push(Outgoing::notify(
             "textDocument/publishDiagnostics",
@@ -90,6 +102,7 @@ impl Backend for JsonBackend {
 
     fn capabilities(&self) -> Value {
         json!({
+            "completionProvider": { "triggerCharacters": ["\"", ":", ",", "{", "[", " "] },
             "documentSymbolProvider": true,
             "foldingRangeProvider": true,
         })
@@ -120,14 +133,25 @@ impl Backend for JsonBackend {
             "textDocument/documentSymbol" | "textDocument/foldingRange" => {
                 let params: DocumentParams = serde_json::from_str(params?.get()).ok()?;
                 let document = documents.get(&params.text_document.uri)?;
-                let parsed = self.parsed(document);
+                self.ensure(document);
+                let cache = self.cache.as_ref().expect("刚写入缓存");
                 let lines = LineIndex::new(document.text());
 
                 let result = match method {
-                    "textDocument/documentSymbol" => document_symbols(&parsed.value, &lines),
-                    _ => folding_ranges(&parsed.value, &lines),
+                    "textDocument/documentSymbol" => document_symbols(&cache.parsed.value, &lines),
+                    _ => folding_ranges(&cache.parsed.value, &lines),
                 };
                 Some(Ok(result))
+            }
+            "textDocument/completion" => {
+                let params: PositionParams = serde_json::from_str(params?.get()).ok()?;
+                let document = documents.get(&params.text_document.uri)?;
+                self.ensure(document);
+                let cache = self.cache.as_ref().expect("刚写入缓存");
+                let offset = document.offset_at(params.position) as u32;
+
+                let items = schema::completion(document.text(), &cache.parsed.value, cache.schema.as_ref(), offset);
+                Some(Ok(json!({ "isIncomplete": false, "items": items })))
             }
             _ => Some(Err(ResponseError {
                 code: lspd_core::message::error_code::METHOD_NOT_FOUND,
@@ -251,6 +275,14 @@ fn collect_folds(value: &Json, lines: &LineIndex<'_>, ranges: &mut Vec<Value>) {
 #[serde(rename_all = "camelCase")]
 struct DocumentParams {
     text_document: TextIdentifier,
+}
+
+/// 带位置的请求参数。
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PositionParams {
+    text_document: TextIdentifier,
+    position: Position,
 }
 
 /// 文档标识。

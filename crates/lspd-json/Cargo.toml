@@ -10,3 +10,5 @@ publish.workspace = true
 lspd-core.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+# regex 的 API 子集实现：pattern 校验只需线性时间无回溯引擎，体积增量 86KB（regex 为 1.2MB）
+regex-lite = "0.1"

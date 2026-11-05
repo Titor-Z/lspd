@@ -10,5 +10,6 @@
 
 mod backend;
 pub mod parser;
+mod schema;
 
 pub use backend::backend;
