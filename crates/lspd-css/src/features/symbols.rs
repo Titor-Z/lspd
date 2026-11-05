@@ -6,8 +6,8 @@
 use lspd_core::text::Span;
 use serde_json::{Map, json, Value};
 
-use crate::ast::{NONE, Ast, NodeKind};
-use crate::features::View;
+use crate::ast::{NONE, NodeKind};
+use crate::features::{View, innermost};
 
 /// LSP 的 SymbolKind 取值。
 const SYMBOL_NAMESPACE: u8 = 3;
@@ -119,20 +119,6 @@ pub fn selection_range(view: &View<'_>, offset: u32) -> Value {
         current = Some(Value::Object(object));
     }
     current.unwrap_or(Value::Null)
-}
-
-/// 包含给定位置且跨度最小的节点，即最深的节点。
-fn innermost(ast: &Ast, offset: u32) -> Option<u32> {
-    let mut best: Option<(u32, u32)> = None;
-    for (index, node) in ast.nodes.iter().enumerate() {
-        if node.span.contains(offset) {
-            let width = node.span.end - node.span.start;
-            if best.is_none_or(|(_, previous)| width < previous) {
-                best = Some((index as u32, width));
-            }
-        }
-    }
-    best.map(|(index, _)| index)
 }
 
 /// 节点内光标所在的具体区间；不在名字或值上时退到节点整体。

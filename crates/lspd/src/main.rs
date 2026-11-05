@@ -146,6 +146,9 @@ fn backends() -> Vec<Box<dyn Backend>> {
     #[cfg(feature = "css")]
     list.push(lspd_css::backend());
 
+    #[cfg(feature = "sass")]
+    list.push(lspd_sass::backend());
+
     list.shrink_to_fit();
     list
 }

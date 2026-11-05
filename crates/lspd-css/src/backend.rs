@@ -1,7 +1,9 @@
-//! CSS 后端：把各能力接到核心层的 `Backend` 契约上。
+//! 样式语言后端：把各能力接到核心层的 `Backend` 契约上。
 //!
-//! 一个后端同时服务 css / scss / less，方言由文档的 `languageId` 决定。
-//! 缓存只保留"当前文档的一份语法树"，按 URI 与版本失效，关闭文档即释放。
+//! 后端与具体方言解耦：解析逻辑由注入的 `ParseFn` 决定。
+//! CSS 家族（css / scss / less）用 `parser::parse` 按 languageId 选方言；
+//! 缩进式 Sass 由 `lspd-sass` 传入自己的解析函数，复用同一套能力与缓存。
+//! 缓存只保留“当前文档的一份语法树”，按 URI、版本与 languageId 失效，关闭文档即释放。
 
 use lspd_core::docs::{Document, DocumentStore, Position};
 use lspd_core::text::{LineIndex, Span};
@@ -14,44 +16,74 @@ use crate::dialect::Dialect;
 use crate::features::{View, color, completion, diagnostics, hover, navigation, symbols};
 use crate::parser::{self, ParseResult};
 
-/// 创建 CSS 后端的工厂函数。
+/// 解析策略：由文档的 languageId 决定如何产出语法树与结构诊断。
+pub type ParseFn = fn(source: &str, language_id: &str) -> ParseResult;
+
+/// CSS 家族后端工厂：css / scss / less 共用，方言由 languageId 决定。
 pub fn backend() -> Box<dyn Backend> {
-    Box::new(CssBackend::default())
+    Box::new(StyleBackend::new(
+        "css",
+        &["css", "scss", "less"],
+        &[".css", ".scss", ".less"],
+        parse_css,
+    ))
 }
 
-/// CSS 语言后端。
-#[derive(Default)]
-pub struct CssBackend {
-    /// 单文档解析缓存
-    cache: Option<ParseCache>,
+/// 按 languageId 选方言后调用 CSS 解析器。
+fn parse_css(source: &str, language_id: &str) -> ParseResult {
+    parser::parse(source, Dialect::from_language_id(language_id))
 }
 
-/// 一份文档的解析结果。
+/// 一份文档的解析缓存。
 struct ParseCache {
     /// 文档 URI
     uri: String,
     /// 解析时的版本
     version: i32,
-    /// 方言
-    dialect: Dialect,
+    /// 解析时的语言标识
+    language_id: String,
     /// 解析结果
     parsed: ParseResult,
 }
 
-impl CssBackend {
+/// 样式语言后端。方言差异全部收敛在注入的 `parse` 里。
+pub struct StyleBackend {
+    /// 后端名称
+    name: &'static str,
+    /// 服务的语言标识
+    language_ids: &'static [&'static str],
+    /// 服务的文件扩展名
+    file_extensions: &'static [&'static str],
+    /// 解析策略
+    parse: ParseFn,
+    /// 单文档解析缓存
+    cache: Option<ParseCache>,
+}
+
+impl StyleBackend {
+    /// 构造一个样式后端。
+    pub fn new(
+        name: &'static str,
+        language_ids: &'static [&'static str],
+        file_extensions: &'static [&'static str],
+        parse: ParseFn,
+    ) -> Self {
+        Self { name, language_ids, file_extensions, parse, cache: None }
+    }
+
     /// 取当前文档的解析结果，必要时重新解析。
     fn parsed(&mut self, document: &Document) -> &ParseResult {
-        let dialect = Dialect::from_language_id(document.language_id());
+        let language_id = document.language_id();
         let fresh = self.cache.as_ref().is_some_and(|cache| {
-            cache.uri == document.uri() && cache.version == document.version() && cache.dialect == dialect
+            cache.uri == document.uri() && cache.version == document.version() && cache.language_id == language_id
         });
 
         if !fresh {
             self.cache = Some(ParseCache {
                 uri: document.uri().to_string(),
                 version: document.version(),
-                dialect,
-                parsed: parser::parse(document.text(), dialect),
+                language_id: language_id.to_string(),
+                parsed: (self.parse)(document.text(), language_id),
             });
         }
 
@@ -72,17 +104,17 @@ impl CssBackend {
     }
 }
 
-impl Backend for CssBackend {
+impl Backend for StyleBackend {
     fn name(&self) -> &'static str {
-        "css"
+        self.name
     }
 
     fn language_ids(&self) -> &'static [&'static str] {
-        &["css", "scss", "less"]
+        self.language_ids
     }
 
     fn file_extensions(&self) -> &'static [&'static str] {
-        &[".css", ".scss", ".less"]
+        self.file_extensions
     }
 
     fn capabilities(&self) -> Value {
@@ -138,7 +170,7 @@ impl Backend for CssBackend {
 
                 let result = match method {
                     "textDocument/hover" => hover::hover(&view, offset)?,
-                    "textDocument/completion" => completion::complete(&view, offset),
+                    "textDocument/completion" => completion::complete(&view, offset, document.language_id()),
                     "textDocument/definition" => navigation::definition(&view, offset, document.uri()),
                     "textDocument/references" => navigation::references(&view, offset, document.uri()),
                     _ => navigation::prepare_rename(&view, offset)?,

@@ -91,35 +91,18 @@ fn is_word_byte(byte: u8) -> bool {
     byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_') || byte >= 0x80
 }
 
-/// 判断某个偏移是否落在块内部（`{}` 深度大于 0）。
-pub fn inside_block(source: &str, offset: u32) -> bool {
-    let mut depth = 0i32;
-    let bytes = source.as_bytes();
-    let limit = (offset as usize).min(bytes.len());
-
-    for byte in &bytes[..limit] {
-        match byte {
-            b'{' => depth += 1,
-            b'}' => depth -= 1,
-            _ => {}
+/// 包含给定位置且跨度最小的节点，即最深的节点。
+pub fn innermost(ast: &Ast, offset: u32) -> Option<u32> {
+    let mut best: Option<(u32, u32)> = None;
+    for (index, node) in ast.nodes.iter().enumerate() {
+        if node.span.contains(offset) {
+            let width = node.span.end - node.span.start;
+            if best.is_none_or(|(_, previous)| width < previous) {
+                best = Some((index as u32, width));
+            }
         }
     }
-
-    depth > 0
-}
-
-/// 找到光标所在语句的起点：最近的 `{`、`}` 或 `;` 之后。
-pub fn statement_start(source: &str, offset: u32) -> u32 {
-    let bytes = source.as_bytes();
-    let mut index = (offset as usize).min(bytes.len());
-
-    while index > 0 {
-        match bytes[index - 1] {
-            b'{' | b'}' | b';' => return index as u32,
-            _ => index -= 1,
-        }
-    }
-    0
+    best.map(|(index, _)| index)
 }
 
 /// 在 `start..end` 内找到括号外的冒号。

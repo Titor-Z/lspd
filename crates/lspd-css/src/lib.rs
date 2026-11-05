@@ -6,13 +6,16 @@
 //! - `data`：编译期生成的属性、at 规则、伪类、颜色表；
 //! - `features`：各 LSP 能力实现；
 //! - `backend`：接入核心层的 `Backend` 契约。
+//!
+//! `ast` / `parser` / `data` 对外可见，供缩进式 Sass（`lspd-sass`）复用同一套语法树、
+//! 诊断类型与属性表，只自带一个把缩进结构解析成 `Ast` 的适配层。
 
-mod ast;
+pub mod ast;
 mod backend;
-mod data;
+pub mod data;
 mod dialect;
 mod features;
-mod parser;
+pub mod parser;
 
-pub use backend::backend;
+pub use backend::{ParseFn, StyleBackend, backend};
 pub use dialect::Dialect;
