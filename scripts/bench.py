@@ -233,6 +233,11 @@ def main():
     parser.add_argument("--settle", type=float, default=3.0, help="打开文件后的等待秒数")
     parser.add_argument("--timeout", type=float, default=120.0, help="initialize 超时秒数")
     parser.add_argument("--json-out", default="", help="把结果追加写入该 JSON 文件")
+    parser.add_argument(
+        "--probe",
+        action="store_true",
+        help="didOpen 后发一次 completion 请求，触发懒加载的语言服务（program/类型检查）再采样",
+    )
     parser.add_argument("command", nargs=argparse.REMAINDER, help="-- 之后的服务器命令")
     args = parser.parse_args()
 
@@ -285,6 +290,21 @@ def main():
             },
         )
     result["opened_bytes"] = opened_bytes
+
+    # 懒加载的服务器（如 tsrs）在 didOpen 后并不构建 program，
+    # 发一次真实请求才能测到语言服务真正工作时的常驻内存。
+    if args.probe and files:
+        first = files[0]
+        text = read_text(first)
+        line = text.count("\n") // 2
+        server.request(
+            "textDocument/completion",
+            {
+                "textDocument": {"uri": path_to_uri(first)},
+                "position": {"line": line, "character": 0},
+            },
+            args.timeout,
+        )
 
     time.sleep(args.settle)
     result["open_mb"] = round((server.rss_kb() or 0) / 1024.0, 1)

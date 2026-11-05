@@ -5,3 +5,9 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 publish.workspace = true
+
+[dependencies]
+# compiler/ 是独立 workspace（上游 tsrs v0.22.0 的裁剪 fork），以 path 依赖引入
+tsrs_core = { path = "../../compiler/crates/tsrs_core" }
+tsrs_lsp = { path = "../../compiler/crates/tsrs_lsp" }
+tsrs_vfs = { path = "../../compiler/crates/tsrs_vfs" }

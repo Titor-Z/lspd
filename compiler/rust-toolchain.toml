@@ -1,0 +1,5 @@
+# 与 lspd 根目录一致：只用 channel + default profile。
+# 上游原为 components = ["clippy", "rustfmt"]，会触发 rustup 重复安装 cargo-fmt 而失败（本机已具备）。
+[toolchain]
+channel = "1.99.1"
+profile = "default"

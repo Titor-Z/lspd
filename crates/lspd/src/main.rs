@@ -175,6 +175,13 @@ fn serve(subcommand: Option<Subcommand>) -> ExitCode {
         return ExitCode::from(2);
     }
 
+    // TypeScript 有独立的持续驻留 program，必须单独进程、且不经过 core 的协议层：
+    // tsrs_lsp 自己独占 stdin/stdout。
+    #[cfg(feature = "ts")]
+    if subcommand == Some(Subcommand::Ts) {
+        return ExitCode::from(lspd_tsbridge::run() as u8);
+    }
+
     ExitCode::from(lspd_core::run(backends()) as u8)
 }
 

@@ -1,6 +1,9 @@
 [workspace]
 resolver = "3"
 members = ["crates/*"]
+# compiler/ 是独立 workspace（上游 tsrs fork），不并入本仓库构建
+# 只通过 lspd-tsbridge 的 path 依赖引入其 tsrs_* crate
+exclude = ["compiler"]
 
 [workspace.package]
 version = "0.1.0"
