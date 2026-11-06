@@ -20,8 +20,6 @@ html = ["dep:lspd-html"]
 css = ["dep:lspd-css"]
 sass = ["dep:lspd-sass"]
 json = ["dep:lspd-json"]
-# 可选堆：mimalloc 在 web 栈更省内存，但在 TS 上更费；默认不启用，由构建矩阵决定
-mimalloc = ["dep:mimalloc-safe"]
 
 [dependencies]
 lspd-core.workspace = true
@@ -30,4 +28,3 @@ lspd-css = { workspace = true, optional = true }
 lspd-sass = { workspace = true, optional = true }
 lspd-json = { workspace = true, optional = true }
 lspd-tsbridge = { workspace = true, optional = true }
-mimalloc-safe = { version = "0.1.67", features = ["v3", "no_thp"], optional = true }
