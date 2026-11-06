@@ -507,6 +507,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tests_lib"
+version = "0.0.0"
+dependencies = [
+ "lspd-css",
+ "lspd-html",
+ "lspd-json",
+ "lspd-sass",
+ "serde_json",
+]
+
+[[package]]
 name = "tinystr"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
