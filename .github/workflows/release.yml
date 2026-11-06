@@ -54,8 +54,12 @@ jobs:
         run: |
           mkdir -p dist
           cp "target/${{ matrix.target }}/release/lspd" dist/
-          tar -czf "dist/lspd-${GITHUB_REF_NAME}-${{ matrix.target }}.tar.gz" -C dist lspd
-          shasum -a 256 "dist/lspd-${GITHUB_REF_NAME}-${{ matrix.target }}.tar.gz" > "dist/lspd-${GITHUB_REF_NAME}-${{ matrix.target }}.tar.gz.sha256"
+          cd dist
+          ARCHIVE="lspd-${GITHUB_REF_NAME}-${{ matrix.target }}.tar.gz"
+          tar -czf "$ARCHIVE" lspd
+          # 只记录文件名本身，避免下载后因路径前缀导致 shasum -c 失败
+          shasum -a 256 "$ARCHIVE" > "$ARCHIVE.sha256"
+          cat "$ARCHIVE.sha256"
 
       - uses: actions/upload-artifact@v4
         with:
