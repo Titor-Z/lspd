@@ -1,68 +1,55 @@
-import './styles.css';
+/**
+ * 站点交互：复制命令、图表生长、标签页切换。全部为渐进增强，
+ * 脚本不执行时内容依然完整可读。
+ */
 
-/** 把命令复制到剪贴板，并在按钮上给出短暂反馈。 */
-function bindCopyButtons(): void {
+/** 复制命令到剪贴板，按钮给出短暂反馈。 */
+function bindCopy(): void {
   document.querySelectorAll<HTMLButtonElement>('.copy').forEach((button) => {
-    const original = button.textContent ?? '复制';
+    const label = button.textContent ?? '复制';
 
     button.addEventListener('click', async () => {
-      const text = button.dataset.copy ?? '';
       try {
-        await navigator.clipboard.writeText(text);
+        await navigator.clipboard.writeText(button.dataset.copy ?? '');
         button.textContent = '已复制';
         button.classList.add('done');
-        window.setTimeout(() => {
-          button.textContent = original;
-          button.classList.remove('done');
-        }, 1200);
       } catch {
-        button.textContent = '复制失败';
-        window.setTimeout(() => {
-          button.textContent = original;
-        }, 1200);
+        button.textContent = '失败';
       }
+      window.setTimeout(() => {
+        button.textContent = label;
+        button.classList.remove('done');
+      }, 1200);
     });
   });
 }
 
-/** 按最大值折算比例，滚动进入视口后让条形生长。 */
+/** 条形按组内最大值折算宽度，进入视口后生长一次。 */
 function bindCharts(): void {
   const charts = Array.from(document.querySelectorAll<HTMLElement>('[data-chart]'));
-  if (charts.length === 0) {
-    return;
-  }
+  if (charts.length === 0) return;
+
+  // 标记每组内的领先项：名字最像 lspd 的那一行
+  charts.forEach((chart) => {
+    const rows = Array.from(chart.querySelectorAll<HTMLElement>('.row'));
+    rows
+      .filter((row) => (row.querySelector('.name')?.textContent ?? '').trim().startsWith('lspd'))
+      .forEach((row) => row.classList.add('is-lead'));
+  });
 
   const grow = (chart: HTMLElement): void => {
     const rows = Array.from(chart.querySelectorAll<HTMLElement>('.row'));
-    const max = rows.reduce(
-      (peak, row) => Math.max(peak, Number(row.dataset.bar ?? '0')),
-      0,
-    );
-    if (max <= 0) {
-      return;
-    }
+    const max = rows.reduce((peak, row) => Math.max(peak, Number(row.dataset.bar ?? 0)), 0);
+    if (max <= 0) return;
 
     rows.forEach((row) => {
-      const value = Number(row.dataset.bar ?? '0');
+      const value = Number(row.dataset.bar ?? 0);
       const fill = row.querySelector<HTMLElement>('.track i');
-      if (!fill) {
-        return;
-      }
-      fill.style.width = `${Math.max(1.5, (value / max) * 100)}%`;
-      row.classList.toggle('is-lspd', row.classList.contains('is-lspd'));
+      if (!fill) return;
+      // 最小 1%，否则小值会完全消失
+      fill.style.width = `${Math.max(1, (value / max) * 100)}%`;
     });
   };
-
-  const markStrong = (): void => {
-    document.querySelectorAll<HTMLElement>('.row').forEach((row) => {
-      const name = row.querySelector('.name');
-      if (name?.classList.contains('strong')) {
-        row.classList.add('is-lspd');
-      }
-    });
-  };
-
-  markStrong();
 
   if (!('IntersectionObserver' in window)) {
     charts.forEach(grow);
@@ -72,57 +59,54 @@ function bindCharts(): void {
   const observer = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
-        if (!entry.isIntersecting) {
-          return;
-        }
+        if (!entry.isIntersecting) return;
         grow(entry.target as HTMLElement);
         observer.unobserve(entry.target);
       });
     },
-    { threshold: 0.25 },
+    { threshold: 0.2 },
   );
 
   charts.forEach((chart) => observer.observe(chart));
 }
 
-/** 编辑器配置的标签页切换。 */
+/** 编辑器标签页。 */
 function bindTabs(): void {
   const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>('.tabs button'));
   const panels = Array.from(document.querySelectorAll<HTMLElement>('[data-panel]'));
-  if (tabs.length === 0) {
-    return;
-  }
+  if (tabs.length === 0) return;
 
-  const show = (key: string): void => {
-    tabs.forEach((tab) => {
-      tab.setAttribute('aria-selected', String(tab.dataset.tab === key));
-    });
-    panels.forEach((panel) => {
-      panel.classList.toggle('active', panel.dataset.panel === key);
-    });
+  const select = (key: string): void => {
+    tabs.forEach((tab) => tab.setAttribute('aria-selected', String(tab.dataset.tab === key)));
+    panels.forEach((panel) => panel.classList.toggle('active', panel.dataset.panel === key));
   };
 
-  tabs.forEach((tab) => {
-    tab.addEventListener('click', () => show(tab.dataset.tab ?? ''));
+  tabs.forEach((tab) => tab.addEventListener('click', () => select(tab.dataset.tab ?? '')));
+
+  // 键盘左右切换，符合 tablist 的惯例
+  tabs.forEach((tab, index) => {
+    tab.addEventListener('keydown', (event) => {
+      const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+      if (step === 0) return;
+      event.preventDefault();
+      const next = tabs[(index + step + tabs.length) % tabs.length];
+      select(next.dataset.tab ?? '');
+      next.focus();
+    });
   });
 
-  show(tabs[0].dataset.tab ?? '');
+  select(tabs[0].dataset.tab ?? '');
 }
 
-/** 收尾处标注本站体积，构建后由构建脚本替换为真实值。 */
+/** 页脚体积由构建脚本回填；这里只负责把值写进页面。 */
 function bindFooter(): void {
-  const size = document.querySelector<HTMLElement>('[data-size]');
-  if (!size) {
-    return;
-  }
+  const target = document.querySelector<HTMLElement>('[data-size]');
   const stamp = document.documentElement.dataset.buildSize;
-  if (stamp) {
-    size.textContent = stamp;
-  }
+  if (target && stamp) target.textContent = stamp;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  bindCopyButtons();
+  bindCopy();
   bindCharts();
   bindTabs();
   bindFooter();

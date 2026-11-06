@@ -28,13 +28,13 @@ for (const name of readdirSync(assets)) {
   if (name.endsWith('.css')) css += Number(gzipKb(path));
 }
 
-const label = `本站 JS ${js.toFixed(1)} KB · CSS ${css.toFixed(1)} KB · 无框架 · 无网络字体 · 无追踪`;
+const label = `本站 JS ${js.toFixed(1)} KB · CSS ${css.toFixed(1)} KB · 无框架 · 无网络字体`;
 
 const htmlPath = join(dist, 'index.html');
 const html = readFileSync(htmlPath, 'utf8');
 const updated = html.replace(
-  /<span class="dim" data-size>[^<]*<\/span>/,
-  `<span class="dim" data-size>${label}</span>`,
+  /(<span[^>]*\bdata-size\b[^>]*>)[^<]*(<\/span>)/,
+  `$1${label}$2`,
 );
 
 writeFileSync(htmlPath, updated);

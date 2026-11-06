@@ -4,187 +4,208 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>lspd — 低内存多语言语言服务器</title>
-<meta name="description" content="LSP over stdio。TypeScript、HTML、CSS、Sass、JSON。工作态内存是同类方案的 1/3 到 1/40。">
+<meta name="description" content="LSP over stdio。TypeScript、HTML、CSS、Sass、JSON。空闲 3.7 MB，启动 1.3 ms，无运行时依赖。">
 <link rel="icon" href="/favicon.svg">
+<link rel="stylesheet" href="/src/styles.css">
 </head>
 <body>
 
-<header class="site-header">
-  <div class="wrap header-inner">
-    <a class="wordmark" href="#top">lspd</a>
-    <nav aria-label="主导航">
-      <a href="#benchmarks">性能</a>
-      <a href="#features">能力</a>
-      <a href="#editors">接入</a>
+<header class="bar">
+  <div class="wrap bar-in">
+    <a class="mark" href="#top"><span class="mark-sq" aria-hidden="true"></span>lspd</a>
+    <nav class="nav" aria-label="主导航">
+      <a href="#data">数据</a>
+      <a href="#spec">能力</a>
+      <a href="#use">接入</a>
+      <a href="#get">安装</a>
     </nav>
   </div>
 </header>
 
 <main id="top">
 
-  <!-- Hero -->
+  <!-- HERO -->
   <section class="hero">
-    <div class="wrap">
-      <h1>同样的活儿，<br>少用 <em>40 倍</em> 内存。</h1>
-      <p class="lede">
-        一个可执行文件，LSP over stdio。按子命令装载语言后端：<br>
-        TypeScript、JavaScript、HTML、CSS、SCSS、Sass、JSON。
-      </p>
-      <div class="cmd">
-        <code>lspd web</code>
-        <button class="copy" data-copy="lspd web" aria-label="复制命令">复制</button>
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">语言服务器 · Rust · LSP 3.17</p>
+        <h1 class="hero-title">lspd</h1>
+        <p class="hero-sub">
+          TypeScript、JavaScript、HTML、CSS、SCSS、Sass、JSON。<br>
+          单一可执行文件，LSP over stdio，无运行时依赖。
+        </p>
+
+        <dl class="facts">
+          <div class="fact">
+            <dt>空闲内存</dt>
+            <dd>3.7<span>MB</span></dd>
+          </div>
+          <div class="fact">
+            <dt>启动耗时</dt>
+            <dd>1.3<span>ms</span></dd>
+          </div>
+          <div class="fact">
+            <dt>外部依赖</dt>
+            <dd>0</dd>
+          </div>
+        </dl>
+
+        <div class="cmd">
+          <code>lspd web</code>
+          <button class="copy" data-copy="lspd web" aria-label="复制命令">复制</button>
+        </div>
+      </div>
+
+      <div class="hero-art" aria-hidden="true">
+        <span class="shape circle"></span>
+        <span class="shape block"></span>
+        <span class="shape tri"></span>
+        <span class="shape line"></span>
       </div>
     </div>
   </section>
 
-  <!-- Benchmarks -->
-  <section id="benchmarks" class="section">
+  <!-- DATA -->
+  <section id="data" class="section">
     <div class="wrap">
-      <h2>同机实测</h2>
-      <p class="sub">同一台机器、同一份工程、同一套脚本。RSS 为被测进程常驻集。</p>
+      <header class="sec-head">
+        <span class="sec-num">01</span>
+        <h2>实测数据</h2>
+        <p class="sec-sub">同一台机器、同一份工程、同一套脚本。RSS 为被测进程常驻集。</p>
+      </header>
 
-      <div class="chart" data-chart>
-        <div class="chart-head">
-          <span>空闲内存</span>
-          <span class="unit">MB</span>
+      <div class="charts">
+        <div class="chart" data-chart>
+          <div class="chart-head"><span>空闲内存</span><span class="unit">MB</span></div>
+
+          <div class="row" data-bar="3.7">
+            <span class="name">lspd ts</span>
+            <span class="track"><i></i></span>
+            <span class="val">3.7</span>
+          </div>
+          <div class="row" data-bar="9.6">
+            <span class="name">tsgo <em>官方 TS 7</em></span>
+            <span class="track"><i></i></span>
+            <span class="val">9.6</span>
+          </div>
+          <div class="row" data-bar="51.3">
+            <span class="name">typescript-language-server</span>
+            <span class="track"><i></i></span>
+            <span class="val">51.3</span>
+          </div>
+          <div class="row" data-bar="60.2">
+            <span class="name">vtsls</span>
+            <span class="track"><i></i></span>
+            <span class="val">60.2</span>
+          </div>
         </div>
 
-        <div class="row" data-bar="3.7">
-          <span class="name strong">lspd ts</span>
-          <span class="track"><i></i></span>
-          <span class="val strong">3.7</span>
+        <div class="chart" data-chart>
+          <div class="chart-head"><span>启动耗时</span><span class="unit">MS</span></div>
+
+          <div class="row" data-bar="1.3">
+            <span class="name">lspd ts</span>
+            <span class="track"><i></i></span>
+            <span class="val">1.3</span>
+          </div>
+          <div class="row" data-bar="6.8">
+            <span class="name">tsgo</span>
+            <span class="track"><i></i></span>
+            <span class="val">6.8</span>
+          </div>
+          <div class="row" data-bar="191.3">
+            <span class="name">typescript-language-server</span>
+            <span class="track"><i></i></span>
+            <span class="val">191.3</span>
+          </div>
+          <div class="row" data-bar="311.4">
+            <span class="name">vtsls</span>
+            <span class="track"><i></i></span>
+            <span class="val">311.4</span>
+          </div>
         </div>
-        <div class="row" data-bar="9.6">
-          <span class="name">tsgo<span class="tag">官方 TS 7</span></span>
-          <span class="track"><i></i></span>
-          <span class="val">9.6</span>
-        </div>
-        <div class="row" data-bar="51.3">
-          <span class="name">typescript-language-server</span>
-          <span class="track"><i></i></span>
-          <span class="val">51.3</span>
-        </div>
-        <div class="row" data-bar="60.2">
-          <span class="name">vtsls</span>
-          <span class="track"><i></i></span>
-          <span class="val">60.2</span>
+
+        <div class="chart" data-chart>
+          <div class="chart-head"><span>Web 栈空闲内存</span><span class="unit">MB</span></div>
+
+          <div class="row" data-bar="2.7">
+            <span class="name">lspd web <em>单进程 · 五语言</em></span>
+            <span class="track"><i></i></span>
+            <span class="val">2.7</span>
+          </div>
+          <div class="row" data-bar="72.1">
+            <span class="name">vscode-css-language-server</span>
+            <span class="track"><i></i></span>
+            <span class="val">72.1</span>
+          </div>
+          <div class="row" data-bar="137.6">
+            <span class="name">vscode-html-language-server</span>
+            <span class="track"><i></i></span>
+            <span class="val">137.6</span>
+          </div>
         </div>
       </div>
 
-      <div class="chart" data-chart>
-        <div class="chart-head">
-          <span>启动耗时</span>
-          <span class="unit">ms</span>
-        </div>
-
-        <div class="row" data-bar="1.3">
-          <span class="name strong">lspd ts</span>
-          <span class="track"><i></i></span>
-          <span class="val strong">1.3</span>
-        </div>
-        <div class="row" data-bar="6.8">
-          <span class="name">tsgo</span>
-          <span class="track"><i></i></span>
-          <span class="val">6.8</span>
-        </div>
-        <div class="row" data-bar="191.3">
-          <span class="name">typescript-language-server</span>
-          <span class="track"><i></i></span>
-          <span class="val">191.3</span>
-        </div>
-        <div class="row" data-bar="311.4">
-          <span class="name">vtsls</span>
-          <span class="track"><i></i></span>
-          <span class="val">311.4</span>
-        </div>
-      </div>
-
-      <div class="chart" data-chart>
-        <div class="chart-head">
-          <span>Web 栈空闲内存</span>
-          <span class="unit">MB</span>
-        </div>
-
-        <div class="row" data-bar="2.7">
-          <span class="name strong">lspd web<span class="tag">单进程，五语言</span></span>
-          <span class="track"><i></i></span>
-          <span class="val strong">2.7</span>
-        </div>
-        <div class="row" data-bar="72.1">
-          <span class="name">vscode-css-language-server</span>
-          <span class="track"><i></i></span>
-          <span class="val">72.1</span>
-        </div>
-        <div class="row" data-bar="137.6">
-          <span class="name">vscode-html-language-server</span>
-          <span class="track"><i></i></span>
-          <span class="val">137.6</span>
-        </div>
-      </div>
-
-      <p class="footnote">
-        要让编辑器同时具备 HTML 与 CSS 能力，vscode 方案需要两个进程，空闲合计 209.7 MB。
+      <p class="note">
+        要让编辑器同时具备 HTML 与 CSS 能力，vscode 方案需两个进程，空闲合计 209.7 MB。
         测量环境：Mac mini 2014 / 8 GB / macOS 12.7.6。
       </p>
 
-      <div class="table-scroll">
-      <table class="table">
-        <caption>请求延迟（同一文件，15 次往返，毫秒）</caption>
-        <thead>
-          <tr>
-            <th scope="col">服务器</th>
-            <th scope="col">hover P50</th>
-            <th scope="col">completion P50</th>
-            <th scope="col">diagnostic P50</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr class="strong-row">
-            <td>lspd ts</td><td>0.23</td><td>11.08</td><td>0.28</td>
-          </tr>
-          <tr>
-            <td>tsgo</td><td>0.27</td><td>10.47</td><td>0.34</td>
-          </tr>
-          <tr>
-            <td>typescript-language-server</td><td>1.39</td><td>33.94</td><td>1.03</td>
-          </tr>
-          <tr>
-            <td>vtsls</td><td>2.19</td><td>3.36</td><td>1.22</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-wrap">
+        <table class="table">
+          <caption>请求延迟 · 同一文件 15 次往返 · 毫秒</caption>
+          <thead>
+            <tr>
+              <th scope="col">服务器</th>
+              <th scope="col">hover P50</th>
+              <th scope="col">completion P50</th>
+              <th scope="col">diagnostic P50</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="lead-row"><td>lspd ts</td><td>0.23</td><td>11.08</td><td>0.28</td></tr>
+            <tr><td>tsgo</td><td>0.27</td><td>10.47</td><td>0.34</td></tr>
+            <tr><td>typescript-language-server</td><td>1.39</td><td>33.94</td><td>1.03</td></tr>
+            <tr><td>vtsls</td><td>2.19</td><td>3.36</td><td>1.22</td></tr>
+          </tbody>
+        </table>
       </div>
-      <p class="footnote">
-        vtsls 的 completion 更快，是用内存换来的：它在 didOpen 时即构建完整 program
-        （空闲 60.2 MB），且返回候选少约 20%。它的 P95 反而更高。
+
+      <p class="note">
+        vtsls 的 completion 更快，代价是内存：它在 didOpen 时即构建完整 program（空闲 60.2 MB），
+        且返回候选少约 20%。它的 P95 反而更高。
       </p>
     </div>
   </section>
 
-  <!-- Features -->
-  <section id="features" class="section">
+  <!-- SPEC -->
+  <section id="spec" class="section">
     <div class="wrap">
-      <h2>能力</h2>
-      <p class="sub">两个进程边界：TypeScript 的 program 跨文件常驻，Web 后端只跟随已打开文档。</p>
+      <header class="sec-head">
+        <span class="sec-num">02</span>
+        <h2>能力</h2>
+        <p class="sec-sub">两个进程边界：TypeScript 的 program 跨文件常驻，Web 后端只跟随已打开文档。</p>
+      </header>
 
-      <div class="cols">
-        <div class="col">
-          <h3>lspd ts</h3>
+      <div class="spec-grid">
+        <div class="spec">
+          <h3><span class="dot dot-red" aria-hidden="true"></span>lspd ts</h3>
           <dl>
-            <dt>语言</dt><dd>TypeScript、TSX、JavaScript、JSX</dd>
+            <dt>语言</dt><dd>TypeScript · TSX · JavaScript · JSX</dd>
             <dt>补全</dt><dd>类型感知，含自动导入</dd>
             <dt>导航</dt><dd>跳转定义、查找引用、重命名</dd>
             <dt>诊断</dt><dd>语法与语义，LSP 3.17 拉取模式</dd>
             <dt>结构</dt><dd>文档大纲、折叠范围、链接编辑</dd>
-            <dt>来源</dt><dd>移植自 oxc-project/tsrs，纯 Rust</dd>
+            <dt>来源</dt><dd>移植自 oxc-project/tsrs</dd>
           </dl>
         </div>
-        <div class="col col--web">
-          <h3>lspd web</h3>
+
+        <div class="spec">
+          <h3><span class="dot dot-blue" aria-hidden="true"></span>lspd web</h3>
           <dl>
-            <dt>语言</dt><dd>HTML、CSS、SCSS、Less、Sass、JSON</dd>
-            <dt>补全</dt><dd>标签、属性、属性值、属性名、at 规则</dd>
-            <dt>导航</dt><dd>id/class 跳转、变量定义与引用</dd>
+            <dt>语言</dt><dd>HTML · CSS · SCSS · Less · Sass · JSON</dd>
+            <dt>补全</dt><dd>标签、属性、属性值、at 规则</dd>
+            <dt>导航</dt><dd>id / class 跳转，变量定义与引用</dd>
             <dt>诊断</dt><dd>结构错误、未知属性、schema 约束</dd>
             <dt>结构</dt><dd>大纲、折叠、选择范围、标签联动改名</dd>
             <dt>颜色</dt><dd>内联色块与格式转换</dd>
@@ -194,14 +215,16 @@
     </div>
   </section>
 
-  <!-- Editors -->
-  <section id="editors" class="section">
+  <!-- USE -->
+  <section id="use" class="section">
     <div class="wrap">
-      <h2>接入编辑器</h2>
-      <p class="sub">
-        lspd 是标准 LSP 服务器，只走 stdio。任何能填 command + args、
-        能按语言绑定服务器、且支持 stdio 的编辑器都能用。
-      </p>
+      <header class="sec-head">
+        <span class="sec-num">03</span>
+        <h2>接入</h2>
+        <p class="sec-sub">
+          标准 LSP 服务器，只走 stdio。能填 command + args、能按语言绑定服务器、支持 stdio 的编辑器都能用。
+        </p>
+      </header>
 
       <div class="tabs" role="tablist" aria-label="编辑器">
         <button role="tab" aria-selected="true" data-tab="openidea">OpenIDEA</button>
@@ -214,24 +237,25 @@
       <div class="panels">
         <div class="panel" data-panel="openidea">
           <p class="panel-note">Settings → Languages &amp; Frameworks → Language Servers → <kbd>+</kbd>，建两条。</p>
-          <pre><code>Name:       lspd web
-Command:    /usr/local/bin/lspd web
-Languages:  HTML, CSS, SCSS, Less, Sass, JSON</code></pre>
-          <pre><code>Name:       lspd ts
-Command:    /usr/local/bin/lspd ts
-Languages:  TypeScript, TypeScript React, JavaScript, JavaScript React</code></pre>
+<pre><code>Name       lspd web
+Command    /usr/local/bin/lspd web
+Languages  HTML, CSS, SCSS, Less, Sass, JSON</code></pre>
+<pre><code>Name       lspd ts
+Command    /usr/local/bin/lspd ts
+Languages  TypeScript, TypeScript React, JavaScript, JavaScript React</code></pre>
           <p class="panel-note">右上有 Global / This project 范围开关。内置的同类服务器要先关掉，否则两份补全互相打架。</p>
         </div>
 
         <div class="panel" data-panel="neovim">
           <p class="panel-note">Neovim ≥ 0.8 自带 LSP 客户端，不需要 lspconfig。</p>
-          <pre><code>local lspd = "/usr/local/bin/lspd"
+<pre><code>local lspd = "/usr/local/bin/lspd"
 
 local servers = {
   { name = "lspd-web", cmd = { lspd, "web" },
     filetypes = { "html", "css", "scss", "less", "sass", "json" } },
   { name = "lspd-ts", cmd = { lspd, "ts" },
-    filetypes = { "typescript", "typescriptreact", "javascript", "javascriptreact" } },
+    filetypes = { "typescript", "typescriptreact",
+                  "javascript", "javascriptreact" } },
 }
 
 local by_ft = {}
@@ -244,7 +268,8 @@ vim.api.nvim_create_autocmd("FileType", {
     local s = by_ft[vim.bo[args.buf].filetype]
     if not s then return end
     local root = vim.fs.dirname(vim.fs.find({ ".git" }, { upward = true })[1])
-    vim.lsp.start({ name = s.name, cmd = s.cmd, root_dir = root or vim.fn.getcwd() },
+    vim.lsp.start({ name = s.name, cmd = s.cmd,
+                    root_dir = root or vim.fn.getcwd() },
                   { bufnr = args.buf })
   end,
 })</code></pre>
@@ -252,7 +277,7 @@ vim.api.nvim_create_autocmd("FileType", {
 
         <div class="panel" data-panel="helix">
           <p class="panel-note">Helix ≥ 23.05，编辑 <code>~/.config/helix/languages.toml</code>。</p>
-          <pre><code>[language-server.lspd-web]
+<pre><code>[language-server.lspd-web]
 command = "lspd"
 args = ["web"]
 
@@ -283,20 +308,22 @@ language-servers = ["lspd-ts"]</code></pre>
             或自己写一个薄扩展用 <code>vscode-languageclient</code>。
             另外要关掉内置的 TypeScript / HTML / CSS 服务，否则两份诊断重复。
           </p>
-          <pre><code>// extension.ts
+<pre><code>// extension.ts
 const web = new LanguageClient("lspd-web", "lspd (Web)",
-  { command: "/usr/local/bin/lspd", args: ["web"], transport: TransportKind.stdio },
+  { command: "/usr/local/bin/lspd", args: ["web"],
+    transport: TransportKind.stdio },
   { documentSelector: ["html", "css", "scss", "less", "sass", "json"] });
 
 const ts = new LanguageClient("lspd-ts", "lspd (TypeScript)",
-  { command: "/usr/local/bin/lspd", args: ["ts"], transport: TransportKind.stdio },
+  { command: "/usr/local/bin/lspd", args: ["ts"],
+    transport: TransportKind.stdio },
   { documentSelector: ["typescript", "typescriptreact",
                        "javascript", "javascriptreact"] });</code></pre>
         </div>
 
         <div class="panel" data-panel="vim">
           <p class="panel-note">Vim 没有内置 LSP，需要 vim-lsp 或 coc.nvim。</p>
-          <pre><code>augroup lspd
+<pre><code>augroup lspd
   autocmd!
   autocmd User lsp_setup call lsp#register_server({
     \ 'name': 'lspd-web',
@@ -306,7 +333,8 @@ const ts = new LanguageClient("lspd-ts", "lspd (TypeScript)",
   autocmd User lsp_setup call lsp#register_server({
     \ 'name': 'lspd-ts',
     \ 'cmd': { server_info -> ['/usr/local/bin/lspd', 'ts'] },
-    \ 'allowlist': ['typescript', 'typescriptreact', 'javascript', 'javascriptreact'],
+    \ 'allowlist': ['typescript', 'typescriptreact',
+    \               'javascript', 'javascriptreact'],
     \ })
 augroup END</code></pre>
         </div>
@@ -314,27 +342,30 @@ augroup END</code></pre>
     </div>
   </section>
 
-  <!-- Install -->
-  <section class="section" id="install">
+  <!-- GET -->
+  <section id="get" class="section section-dark">
     <div class="wrap">
-      <h2>安装</h2>
-      <p class="sub">从 Releases 下载对应平台的压缩包，解压后是单个可执行文件，不需要任何运行时。</p>
-      <pre class="install"><code>tar -xzf lspd-v0.1.0-x86_64-apple-darwin.tar.gz
+      <header class="sec-head sec-head-dark">
+        <span class="sec-num sec-num-light">04</span>
+        <h2>安装</h2>
+        <p class="sec-sub">从 Releases 下载对应平台的压缩包，解压后是单个可执行文件。</p>
+      </header>
+
+<pre class="install"><code>tar -xzf lspd-v0.1.0-x86_64-apple-darwin.tar.gz
 shasum -a 256 -c lspd-v0.1.0-x86_64-apple-darwin.tar.gz.sha256
 sudo mv lspd /usr/local/bin/
 lspd --version</code></pre>
-      <p class="footnote">
-        编辑器从图形界面启动时拿不到终端的 <code>$PATH</code>，配置里一律填绝对路径。
-      </p>
+
+      <p class="note note-dark">编辑器从图形界面启动时拿不到终端的 <code>$PATH</code>，配置里一律填绝对路径。</p>
     </div>
   </section>
 
 </main>
 
 <footer class="site-footer">
-  <div class="wrap">
-    <span>lspd <span class="dim" data-version>0.1.0</span></span>
-    <span class="dim" data-size>本站 JS — · 无框架 · 无网络字体 · 无追踪</span>
+  <div class="wrap footer-in">
+    <span class="footer-mark">lspd <span data-version>0.1.0</span></span>
+    <span class="footer-meta" data-size>本站 JS — · CSS — · 无框架 · 无网络字体</span>
   </div>
 </footer>
 
