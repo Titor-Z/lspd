@@ -9,6 +9,14 @@
   --bg: #ffffff;
   --surface: #fafafa;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* 强调色：主色用于 lspd 自身的数据与可交互元素，辅助色用于对照项 */
+  --accent: #1a56db;
+  --accent-ink: #1746b0;
+  --accent-soft: #eef3fe;
+  --accent-line: #c7d7fb;
+  --second: #0d7a6f;
+  --second-soft: #eaf6f4;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -76,7 +84,7 @@ body {
   transition: color 0.15s ease;
 }
 
-.site-header nav a:hover { color: var(--ink); }
+.site-header nav a:hover { color: var(--accent); }
 
 /* ---------- Hero ---------- */
 
@@ -93,6 +101,11 @@ body {
   font-weight: 600;
 }
 
+.hero h1 em {
+  font-style: normal;
+  color: var(--accent);
+}
+
 .lede {
   margin: 0 0 36px;
   max-width: 620px;
@@ -105,10 +118,13 @@ body {
   align-items: center;
   gap: 0;
   border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
   border-radius: 8px;
   overflow: hidden;
   background: var(--surface);
 }
+
+.cmd code { color: var(--accent-ink); }
 
 .cmd code {
   padding: 10px 16px;
@@ -128,8 +144,8 @@ body {
   transition: color 0.15s ease, background 0.15s ease;
 }
 
-.cmd .copy:hover { color: var(--ink); background: #f2f2f2; }
-.cmd .copy.done { color: var(--ink); }
+.cmd .copy:hover { color: var(--accent); background: var(--accent-soft); }
+.cmd .copy.done { color: var(--accent); }
 
 /* ---------- Section ---------- */
 
@@ -139,10 +155,23 @@ body {
 }
 
 .section h2 {
+  position: relative;
   margin: 0 0 10px;
+  padding-left: 14px;
   font-size: 26px;
   letter-spacing: -0.02em;
   font-weight: 600;
+}
+
+.section h2::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.32em;
+  bottom: 0.32em;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent);
 }
 
 .sub {
@@ -194,9 +223,9 @@ body {
 
 .tag {
   font-size: 11px;
-  color: var(--ink-3);
-  background: var(--surface);
-  border: 1px solid var(--line);
+  color: var(--second);
+  background: var(--second-soft);
+  border: 1px solid #cfe7e2;
   border-radius: 4px;
   padding: 1px 6px;
   white-space: nowrap;
@@ -214,12 +243,13 @@ body {
   display: block;
   height: 100%;
   width: 0;
-  background: #c4c4c4;
+  background: #cfd3d8;
   border-radius: 4px;
   transition: width 0.9s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.row.is-lspd .track i { background: var(--ink); }
+.row.is-lspd .track i { background: var(--accent); }
+.row.is-lspd .name.strong { color: var(--accent-ink); }
 
 .val {
   font-family: var(--mono);
@@ -229,7 +259,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.val.strong { color: var(--ink); font-weight: 600; }
+.val.strong { color: var(--accent); font-weight: 600; }
 
 /* ---------- 表格 ---------- */
 
@@ -277,7 +307,8 @@ body {
   color: var(--ink-2);
 }
 
-.table tr.strong-row td { color: var(--ink); font-weight: 600; }
+.table tr.strong-row td { color: var(--accent-ink); font-weight: 600; }
+.table tr.strong-row td:first-child { color: var(--ink); }
 .table tbody tr:last-child td { border-bottom: 0; }
 
 .footnote {
@@ -297,6 +328,9 @@ body {
 }
 
 .col h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   margin: 0 0 20px;
   font-family: var(--mono);
   font-size: 14px;
@@ -305,6 +339,16 @@ body {
   padding-bottom: 10px;
   border-bottom: 1px solid var(--line);
 }
+
+.col h3::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.col--web h3::before { background: var(--second); }
 
 .col dl {
   margin: 0;
@@ -341,11 +385,11 @@ body {
   transition: color 0.15s ease, border-color 0.15s ease;
 }
 
-.tabs button:hover { color: var(--ink); }
+.tabs button:hover { color: var(--accent); }
 
 .tabs button[aria-selected="true"] {
-  color: var(--ink);
-  border-bottom-color: var(--ink);
+  color: var(--accent-ink);
+  border-bottom-color: var(--accent);
   font-weight: 500;
 }
 
@@ -361,10 +405,20 @@ body {
 .panel-note kbd {
   font-family: var(--mono);
   font-size: 12px;
-  border: 1px solid var(--line);
+  color: var(--accent-ink);
+  border: 1px solid var(--accent-line);
   border-radius: 4px;
   padding: 1px 5px;
-  background: var(--surface);
+  background: var(--accent-soft);
+}
+
+.panel-note code {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border-radius: 4px;
+  padding: 1px 5px;
 }
 
 pre {
@@ -401,6 +455,9 @@ pre.install { margin-top: 0; }
 }
 
 .dim { color: var(--ink-3); }
+
+.site-footer .wrap > span:first-child { color: var(--ink); }
+.site-footer [data-version] { color: var(--accent); }
 
 /* ---------- 窄屏 ---------- */
 
