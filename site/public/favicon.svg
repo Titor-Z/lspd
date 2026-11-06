@@ -1,5 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="12" fill="#0a0b0d"/>
-  <path d="M28 18h8l-8 28h-8z" fill="#4ade80"/>
-  <text x="18" y="48" font-family="system-ui,Georgia,serif" font-size="24" font-weight="bold" fill="#c9ccd1">lspd</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="lspd">
+  <rect width="32" height="32" fill="#111111"/>
+  <rect x="5" y="7" width="22" height="5" fill="#d8402c"/>
+  <rect x="5" y="14" width="15" height="5" fill="#f0c31b"/>
+  <rect x="5" y="21" width="9" height="5" fill="#1e4eb8"/>
 </svg>

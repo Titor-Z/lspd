@@ -12,7 +12,15 @@
 
 <header class="bar">
   <div class="wrap bar-in">
-    <a class="mark" href="#top"><span class="mark-sq" aria-hidden="true"></span>lspd</a>
+    <a class="mark" href="#top">
+      <svg class="mark-svg" viewBox="0 0 32 32" width="20" height="20" aria-hidden="true" focusable="false">
+        <rect width="32" height="32" fill="#111111"/>
+        <rect x="5" y="7" width="22" height="5" fill="#d8402c"/>
+        <rect x="5" y="14" width="15" height="5" fill="#f0c31b"/>
+        <rect x="5" y="21" width="9" height="5" fill="#1e4eb8"/>
+      </svg>
+      lspd
+    </a>
     <nav class="nav" aria-label="主导航">
       <a href="#data">数据</a>
       <a href="#spec">能力</a>
@@ -351,8 +359,8 @@ augroup END</code></pre>
         <p class="sec-sub">从 Releases 下载对应平台的压缩包，解压后是单个可执行文件。</p>
       </header>
 
-<pre class="install"><code>tar -xzf lspd-v0.1.0-x86_64-apple-darwin.tar.gz
-shasum -a 256 -c lspd-v0.1.0-x86_64-apple-darwin.tar.gz.sha256
+<pre class="install"><code>tar -xzf lspd-v0.1.1-x86_64-apple-darwin.tar.gz
+shasum -a 256 -c lspd-v0.1.1-x86_64-apple-darwin.tar.gz.sha256
 sudo mv lspd /usr/local/bin/
 lspd --version</code></pre>
 
@@ -364,7 +372,7 @@ lspd --version</code></pre>
 
 <footer class="site-footer">
   <div class="wrap footer-in">
-    <span class="footer-mark">lspd <span data-version>0.1.0</span></span>
+    <span class="footer-mark">lspd <span data-version>0.1.1</span></span>
     <span class="footer-meta" data-size>本站 JS — · CSS — · 无框架 · 无网络字体</span>
   </div>
 </footer>

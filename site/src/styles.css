@@ -76,10 +76,9 @@ body {
   text-decoration: none;
 }
 
-.mark-sq {
-  width: 14px;
-  height: 14px;
-  background: var(--red);
+.mark-svg {
+  display: block;
+  flex: none;
 }
 
 .nav {
