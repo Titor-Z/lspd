@@ -126,7 +126,7 @@ mod lifecycle {
             .stderr(Stdio::piped())
             .spawn().expect("spawn lspd failed");
 
-        let stdin = child.stdin.take().unwrap();
+        let mut stdin = child.stdin.take().unwrap();
         
         let init = serde_json::json!({
             "jsonrpc":"2.0","id":1,"method":"initialize","params":{
