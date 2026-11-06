@@ -36,6 +36,10 @@ jobs:
           rustup show active-toolchain || true
           rustc --version
 
+      # 交叉编译到 x86_64-apple-darwin 时，arm64 runner 上默认没有该 target
+      - name: 确保目标已安装
+        run: rustup target add ${{ matrix.target }}
+
       # 编译缓存：首次仍会全量编译，之后命中可显著缩短
       - uses: Swatinem/rust-cache@v2
         with:
