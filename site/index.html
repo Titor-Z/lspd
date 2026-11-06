@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>lspd — 低内存多语言语言服务器</title>
+  <meta name="description" content="LSP over stdio，按子命令装载语言后端。TypeScript、HTML/CSS/SCSS/Sass/JSON。工作态内存只有同类方案的 1/3–1/40。">
+  <link rel="icon" href="favicon.svg">
+  <style>
+    /* Inline critical CSS for instant readability */
+    *,*::before,*::after{box-sizing:border-box}
+    body{margin:0;background:#0a0b0d;color:#c9ccd1;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.625;letter-spacing:.01em;-webkit-font-smoothing:antialiased}
+    a{color:#4ade80;text-decoration:none}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="container nav-bar" aria-label="主导航">
+      <div class="brand"><span class="logo">lspd</span></div>
+      <ul class="nav-list" role="menubar">
+        <li role="none"><a href="#compare">对比</a></li>
+        <li role="none"><a href="#benchmarks">性能</a></li>
+        <li role="none"><a href="#editors">接入</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero" id="home">
+      <div class="container hero-inner">
+        <h1 class="hero-title" data-reveal>
+          <span class="char-wrap"><span class="char">静</span></span><span class="char-wrap"><span class="char">默</span></span>
+          <span class="char-wrap"><span class="char">的</span></span><span class="char-wrap"><span class="char">重</span></span><span class="char-wrap"><span class="char">量</span></span>
+        </h1>
+        <p class="hero-subtitle" data-reveal data-delay="400">
+          LSP over stdio，按子命令装载语言后端。<br>
+          TypeScript、HTML/CSS/SCSS/Sass/JSON。<br>
+          工作态内存只有同类方案的 1/3–1/40。
+        </p>
+        <code class="hero-code">
+          <span class="cmd-text"></span><span class="cursor">▌</span>
+        </code>
+      </div>
+    </section>
+
+    <!-- Memory Comparison -->
+    <section class="compare" id="compare">
+      <div class="container">
+        <h2 class="section-title" data-reveal><span class="section-num">01</span>内存对比</h2>
+        <p class="section-intro" data-reveal>同机实测（Mac mini 2014 / 8 GB）：<span class="highlight">lspd web</span> 只需同类方案的 1/40。</p>
+        
+        <div class="bar-chart">
+          <div class="bar-row stagger-1" data-reveal>
+            <span class="bar-label">vscode-html</span>
+            <div class="bar-track"><div class="bar-fill" data-value="137.6"><span class="bar-value">137.6 MB</span></div></div>
+          </div>
+          <div class="bar-row stagger-2" data-reveal>
+            <span class="bar-label">vscode-css</span>
+            <div class="bar-track"><div class="bar-fill" data-value="72.1"><span class="bar-value">72.1 MB</span></div></div>
+          </div>
+          <div class="bar-row stagger-3" data-reveal style="border-left: 2px solid #4ade80; padding-left: 4px;">
+            <span class="bar-label highlight">lspd web</span>
+            <div class="bar-track"><div class="bar-fill highlight" data-value="8.9"><span class="bar-value">8.9 MB</span></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Detailed Benchmarks -->
+    <section class="benchmarks" id="benchmarks">
+      <div class="container">
+        <h2 class="section-title" data-reveal><span class="section-num">02</span>详细性能数据</h2>
+        <p class="section-intro" data-reveal>与官方 tsgo (TypeScript 7) 及其他成熟方案对照。</p>
+        
+        <table class="benchmark-table">
+          <thead>
+            <tr>
+              <th scope="col">服务器</th>
+              <th scope="col">空闲内存</th>
+              <th scope="col">工作态</th>
+              <th scope="col">启动时间</th>
+              <th scope="col">Hover P50</th>
+              <th scope="col">Completion P50</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="highlight-row">
+              <td><strong>lspd ts</strong></td>
+              <td>3.7 MB</td>
+              <td>16.7 MB</td>
+              <td><strong>1.3 ms</strong></td>
+              <td><strong>0.23 ms</strong></td>
+              <td>11.08 ms</td>
+            </tr>
+            <tr>
+              <td>tsgo (官方)</td>
+              <td>9.6 MB</td>
+              <td>9.9 MB</td>
+              <td>6.8 ms</td>
+              <td>0.27 ms</td>
+              <td>10.47 ms</td>
+            </tr>
+            <tr>
+              <td>typescript-language-server</td>
+              <td>51.3 MB</td>
+              <td>57.5 MB</td>
+              <td>191.3 ms</td>
+              <td>1.39 ms</td>
+              <td>33.94 ms</td>
+            </tr>
+            <tr>
+              <td>vtsls</td>
+              <td>60.2 MB</td>
+              <td>64.9 MB</td>
+              <td>311.4 ms</td>
+              <td>2.19 ms</td>
+              <td>3.36 ms</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <p class="note" data-reveal data-delay="200">数据来源：同一 fixture（162 文件 / 4.2 MB）、同一脚本、同一台机器。测量环境：macOS 12.7.6 / 8 GB RAM。</p>
+      </div>
+    </section>
+
+    <!-- Editors -->
+    <section class="editors" id="editors">
+      <div class="container">
+        <h2 class="section-title" data-reveal><span class="section-num">03</span>编辑器配置</h2>
+        <div class="tabs" role="tablist" aria-label="编辑选择器">
+          <button role="tab" aria-selected="true" data-tab="openidea">OpenIDEA</button>
+          <button role="tab" aria-selected="false" data-tab="neovim">Neovim</button>
+          <button role="tab" aria-selected="false" data-tab="helix">Helix</button>
+          <button role="tab" aria-selected="false" data-tab="vscode">VSCode</button>
+        </div>
+        <div class="tab-content" data-tab-panel="openidea">
+          <!-- Content will be injected by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Outro -->
+    <section class="outro" id="outro">
+      <div class="container outro-inner">
+        <h2 class="section-title" data-reveal><span class="section-num">04</span>开始使用</h2>
+        <div class="install-command" data-reveal>
+          <pre><code>$ curl -OL https://github.com/Titor-Z/lspd/releases/download/v0.1.0/<wbr>lspd-v0.1.0-x86_64-apple-darwin.tar.gz<br>&nbsp;&nbsp;&amp;&amp; shasum -a 256 -c *.sha256<br>&nbsp;&nbsp;&amp;&amp; sudo mv lspd /usr/local/bin/</code></pre>
+        </div>
+        <footer class="footnote" data-size-report>
+          <span class="report-trigger">本站 JS 1.77 KB · 无框架 · 无网络字体 · 无追踪</span>
+        </footer>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

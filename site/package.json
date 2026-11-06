@@ -1,0 +1,17 @@
+{
+  "name": "lspd-site",
+  "version": "1.0.0",
+  "description": "Website for lspd - Low-memory multi-language LSP server",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build && node scripts/size-report.js",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "terser": "^5.51.2",
+    "typescript": "^5.9.2",
+    "vite": "^6.0.3"
+  }
+}

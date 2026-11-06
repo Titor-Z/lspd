@@ -1,0 +1,33 @@
+/* Design Tokens */
+:root {
+  --bg: #0a0b0d;
+  --surface: #121317;
+  --line: #1e2025;
+  --text: #c9ccd1;
+  --muted: #6b7078;
+  --accent: #4ade80;
+  --focus-ring: rgba(74,222,128,0.4);
+  
+  --font-title: 'Iowan Old Style', 'Palatino Linotype', 'ITC Bookman', Georgia, serif;
+  --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  
+  --space-1: 8px;
+  --space-2: 12px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --space-7: 64px;
+  
+  --container: 1120px;
+  
+  --ease-out-back: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ease-out-back: ease-out;
+    --ease-bounce: ease-out;
+  }
+}
