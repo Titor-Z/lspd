@@ -64,6 +64,7 @@ mod jsonrpc {
 #[cfg(test)]
 mod lifecycle {
     use crate::jsonrpc::frame;
+    use serde_json::{Value,json};
     use std::io::{Read, Write};
     use std::process::{Command, Stdio};
     use std::thread;
@@ -147,6 +148,7 @@ mod lifecycle {
 #[cfg(test)]
 mod position_encoding {
     use crate::jsonrpc::frame;
+    use serde_json::{Value,json};
     use std::io::{Read, Write};
     use std::process::{Command, Stdio};
     use std::thread;
@@ -243,13 +245,13 @@ mod capabilities_merge {
     #[test]
     fn test_capability_merge_boolean_or() {
         let mut merged: std::collections::HashMap<String, serde_json::Value> = std::collections::HashMap::new();
-        merged.insert("hoverProvider".to_string(), serde_json::json!(false));
+        merged.insert("hoverProvider".to_string(), serde_json::Value::Bool(false));
         
         let source: serde_json::Value = serde_json::json!({ "hoverProvider": true });
         
-        if let (Some(existing), Some(Value::Bool(new_val))) = 
+        if let (Some(existing), Some(source_val)) = 
            (merged.get_mut("hoverProvider"), source.get("hoverProvider")) {
-            *existing = existing.as_bool().unwrap() || new_val.as_bool().unwrap();
+            *existing = serde_json::Value::Bool(existing.as_bool().unwrap() || source_val.as_bool().unwrap());
         }
         
         let result = merged["hoverProvider"].as_bool().unwrap();
