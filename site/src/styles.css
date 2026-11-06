@@ -1,0 +1,429 @@
+/* lspd 官网样式：极简黑白，单色强调，靠排版与留白。 */
+
+:root {
+  --ink: #111111;
+  --ink-2: #4a4a4a;
+  --ink-3: #767676;
+  --line: #e5e5e5;
+  --line-2: #f0f0f0;
+  --bg: #ffffff;
+  --surface: #fafafa;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.wrap {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ---------- 头部 ---------- */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: saturate(180%) blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+}
+
+.wordmark {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.site-header nav {
+  display: flex;
+  gap: 24px;
+}
+
+.site-header nav a {
+  color: var(--ink-3);
+  font-size: 14px;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.site-header nav a:hover { color: var(--ink); }
+
+/* ---------- Hero ---------- */
+
+.hero {
+  padding: 120px 0 96px;
+  border-bottom: 1px solid var(--line);
+}
+
+.hero h1 {
+  margin: 0 0 28px;
+  font-size: clamp(34px, 6vw, 58px);
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+  font-weight: 600;
+}
+
+.lede {
+  margin: 0 0 36px;
+  max-width: 620px;
+  font-size: 17px;
+  color: var(--ink-2);
+}
+
+.cmd {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.cmd code {
+  padding: 10px 16px;
+  font-family: var(--mono);
+  font-size: 14px;
+}
+
+.cmd .copy {
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: transparent;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.cmd .copy:hover { color: var(--ink); background: #f2f2f2; }
+.cmd .copy.done { color: var(--ink); }
+
+/* ---------- Section ---------- */
+
+.section {
+  padding: 88px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.section h2 {
+  margin: 0 0 10px;
+  font-size: 26px;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+.sub {
+  margin: 0 0 44px;
+  max-width: 640px;
+  color: var(--ink-2);
+  font-size: 15px;
+}
+
+/* ---------- 图表 ---------- */
+
+.chart + .chart { margin-top: 40px; }
+
+.chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.chart-head .unit { font-family: var(--mono); }
+
+.row {
+  display: grid;
+  grid-template-columns: 240px 1fr 64px;
+  align-items: center;
+  gap: 16px;
+  padding: 11px 0;
+}
+
+.name {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.name.strong { color: var(--ink); font-weight: 600; }
+
+.tag {
+  font-size: 11px;
+  color: var(--ink-3);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
+.track {
+  position: relative;
+  height: 8px;
+  background: var(--line-2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.track i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: #c4c4c4;
+  border-radius: 4px;
+  transition: width 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.row.is-lspd .track i { background: var(--ink); }
+
+.val {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink-3);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.val.strong { color: var(--ink); font-weight: 600; }
+
+/* ---------- 表格 ---------- */
+
+.table-scroll {
+  overflow-x: auto;
+  margin-top: 56px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table {
+  width: 100%;
+  margin: 0;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table caption {
+  text-align: left;
+  font-size: 13px;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-bottom: 12px;
+}
+
+.table th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--ink-3);
+  font-size: 13px;
+  padding: 0 0 10px;
+  border-bottom: 1px solid var(--ink);
+}
+
+.table th:not(:first-child),
+.table td:not(:first-child) {
+  text-align: right;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.table td {
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-2);
+}
+
+.table tr.strong-row td { color: var(--ink); font-weight: 600; }
+.table tbody tr:last-child td { border-bottom: 0; }
+
+.footnote {
+  margin: 20px 0 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--ink-3);
+  max-width: 640px;
+}
+
+/* ---------- 两栏能力 ---------- */
+
+.cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px;
+}
+
+.col h3 {
+  margin: 0 0 20px;
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.col dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 10px 16px;
+  font-size: 14px;
+}
+
+.col dt { color: var(--ink-3); }
+.col dd { margin: 0; color: var(--ink-2); }
+
+/* ---------- 编辑器 ---------- */
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 28px;
+  overflow-x: auto;
+}
+
+.tabs button {
+  flex: none;
+  border: 0;
+  background: none;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink-3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.tabs button:hover { color: var(--ink); }
+
+.tabs button[aria-selected="true"] {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+  font-weight: 500;
+}
+
+.panel { display: none; }
+.panel.active { display: block; }
+
+.panel-note {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.panel-note kbd {
+  font-family: var(--mono);
+  font-size: 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 5px;
+  background: var(--surface);
+}
+
+pre {
+  margin: 0 0 16px;
+  padding: 18px 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+pre code { font-family: inherit; white-space: pre; }
+
+pre.install { margin-top: 0; }
+
+/* ---------- 页脚 ---------- */
+
+.site-footer {
+  padding: 40px 0;
+}
+
+.site-footer .wrap {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.dim { color: var(--ink-3); }
+
+/* ---------- 窄屏 ---------- */
+
+@media (max-width: 720px) {
+  .hero { padding: 72px 0 56px; }
+  .section { padding: 56px 0; }
+
+  .row {
+    grid-template-columns: 1fr 56px;
+    gap: 4px 12px;
+  }
+
+  .row .name { grid-column: 1 / -1; }
+  .row .track { grid-column: 1; }
+
+  .cols { grid-template-columns: 1fr; gap: 40px; }
+
+  .table { font-size: 12px; }
+  .table th, .table td { padding-right: 8px; }
+  .table-scroll { margin-top: 40px; }
+
+  pre { font-size: 12px; padding: 14px 16px; }
+  pre code { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+  .col dl { grid-template-columns: 52px 1fr; }
+}

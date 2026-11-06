@@ -1,249 +1,343 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>lspd — Low-memory multi-language LSP server</title>
-  <style>
-    /* CSS Reset */
-    *,*::before,*::after{box-sizing:border-box}
-    
-    /* Global Styles with Bold Typography */
-    body{margin:0;background:#faf9fa;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#2d2a36;overflow-x:hidden;line-height:1.5}
-    
-    /* Bold Typography Scale */
-    h1,h2,h3{font-weight:700;margin:0;letter-spacing:-0.02em}
-    h1{font-size:clamp(3rem,12vw,7rem);line-height:1.1;letter-spacing:-0.04em;padding-top:40px}
-    h2{font-size:clamp(1.75rem,5vw,3rem);padding-bottom:16px;border-bottom:3px solid #eaeaea;margin-bottom:24px;display:inline-block}
-    h3{font-size:clamp(1.1rem,3vw,1.5rem);color:#5a5564;margin-bottom:8px}
-    
-    p{margin:8px 0;font-size:clamp(1rem,2.5vw,1.25rem)}
-    
-    /* Bento Grid Layout */
-    .bento-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:clamp(12px,3vw,24px);margin:40px auto;max-width:1400px;padding:20px}
-    
-    @media (max-width:1024px){.bento-grid{grid-template-columns:repeat(2,1fr)}}
-    @media (max-width:768px){.bento-grid{grid-template-columns:1fr}}
-    
-    /* Card Base */
-    .card{position:relative;background:#fff;border-radius:20px;transition:transform 0.6s cubic-bezier(0.215,0.61,0.355,1),box-shadow 0.3s;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,5vw,40px)}
-    
-    /* Macaron Gradient Themes */
-    .card--pink{background:linear-gradient(135deg,#ffdce0 0%,#ffebf2 100%);border:3px solid #ffb9c7}
-    .card--mint{background:linear-gradient(135deg,#d4f4e8 0%,#ebf7ee 100%);border:3px solid #9aeecd}
-    .card--blue{background:linear-gradient(135deg,#daeefc 0%,#f0f7fe 100%);border:3px solid #8ac1fb}
-    .card--yellow{background:linear-gradient(135deg,#fffbe6 0%,#fffdf0 100%);border:3px solid #fef5ab}
-    .card--purple{background:linear-gradient(135deg,#ede7f6 0%,#f5f3fc 100%);border:3px solid #c6b9e2}
-    
-    .card:hover{z-index:10;box-shadow:0 25px 50px rgba(0,0,0,0.15);transform:perspective(800px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));border-color:var(--hover-border)}
-    
-    /* Colored Borders on Hover */
-    .card.pink:hover{--hover-border:#ffb9c7}
-    .card.mint:hover{--hover-border:#9aeecd}
-    .card.blue:hover{--hover-border:#8ac1fb}
-    .card.yellow:hover{--hover-border:#fef5ab}
-    .card.purple:hover{--hover-border:#c6b9e2}
-    
-    /* Big Numbers */
-    .big-num{font-size:clamp(4rem,18vw,10rem);font-weight:700;letter-spacing:-0.06em;line-height:1;position:relative}
-    .num-unit{font-size:clamp(1rem,3vw,1.5rem);vertical-align:top;margin-left:4px;font-weight:500}
-    
-    /* Hero Section */
-    .hero{text-align:center;padding:clamp(80px,20vh,160px) 20px;background:radial-gradient(circle at top,#f5f4f7 0%,#faf9fa 70%)}
-    
-    /* Grid Span Classes */
-    .span-2{grid-column:span 2}
-    .span-3{grid-column:span 3}
-    .span-4{grid-column:span 4}
-    .span-6{grid-column:span 6}
-    .row-span-2{grid-row:span 2}
-    
-    /* Code Card Component */
-    .code-card{background:#ffffff;border-radius:24px;border:2px solid #eaeaea;box-shadow:0 10px 30px rgba(0,0,0,0.08);overflow:hidden;transition:transform 0.3s,box-shadow 0.3s}
-    .code-card:hover{transform:translateY(-8px);box-shadow:0 20px 40px rgba(0,0,0,0.12)}
-    
-    .code-header{background:#f8f9fa;padding:16px 24px;border-bottom:1px solid #eaeaea;display:flex;align-items:center;gap:12px}
-    .code-dots{display:flex;gap:8px}
-    .code-dot{width:12px;height:12px;border-radius:50%;background:#d1d5db}
-    .code-dot.red{background:#ef4444}
-    .code-dot.yellow{background:#f59e0b}
-    .code-dot.green{background:#10b981}
-    
-    .code-title{flex:1;text-align:left;font-size:0.9rem;font-weight:600;color:#4b5563}
-    
-    pre{margin:0;background:#fafafa;padding:24px;font-family:'SF Mono',Menlo,Monaco,'Courier New',monospace;font-size:0.9rem;line-height:1.6;overflow-x:auto;color:#374151;border:none}
-    
-    /* Editor Tabs */
-    .editor-tabs{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:32px}
-    .editor-tab-btn{padding:14px 24px;border-radius:12px;border:2px solid #eaeaea;background:#fff;color:#4b5563;font-size:1rem;font-weight:600;cursor:pointer;transition:all 0.3s}
-    .editor-tab-btn:hover{border-color:#a0d2ef;color:#2d2a36}
-    .editor-tab-btn.active{background:linear-gradient(135deg,#daeefc 0%,#f0f7fe 100%);border-color:#8ac1fb;color:#2d2a36;font-weight:700}
-    
-    /* Chart Styles */
-    .chart-container{background:#fff;border-radius:20px;padding:clamp(24px,4vw,40px);margin:20px 0;box-shadow:0 10px 30px rgba(0,0,0,0.05)}
-    .bar-chart{display:flex;flex-direction:column;gap:16px;margin-top:24px}
-    .bar-row{display:flex;align-items:center;gap:16px}
-    .bar-label{width:200px;font-weight:600;font-size:1rem;color:#374151}
-    .bar-track{flex:1;height:32px;background:#f3f4f6;border-radius:16px;overflow:hidden;position:relative}
-    .bar-fill{height:100%;border-radius:16px;transition:width 1.2s cubic-bezier(0.4,0,0.2,1);position:relative}
-    .bar-fill.highlight{background:linear-gradient(90deg,#9aeecd,#b8ebd8)}
-    .bar-value{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-weight:700;font-size:0.9rem;white-space:nowrap}
-    .bar-fill.highlight .bar-value{color:#2d2a36}
-    
-    /* Footer */
-    footer{text-align:center;padding:60px 20px;font-size:1rem;color:#8b8896}
-    
-    /* Animation Keyframes */
-    @keyframes fadeInUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
-    .reveal-in{animation:fadeInUp 0.8s cubic-bezier(0.215,0.61,0.355,1) forwards}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lspd — 低内存多语言语言服务器</title>
+<meta name="description" content="LSP over stdio。TypeScript、HTML、CSS、Sass、JSON。工作态内存是同类方案的 1/3 到 1/40。">
+<link rel="icon" href="/favicon.svg">
 </head>
 <body>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="wordmark" href="#top">lspd</a>
+    <nav aria-label="主导航">
+      <a href="#benchmarks">性能</a>
+      <a href="#features">能力</a>
+      <a href="#editors">接入</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
   <!-- Hero -->
   <section class="hero">
-    <h1 data-reveal>静默的重量</h1>
-    <p style="font-size:clamp(1.25rem,4vw,1.75rem);max-width:800px;margin:24px auto;color:#5a5564">低内存多语言 LSP · TypeScript、HTML/CSS/SCSS/Sass/JSON · 工作态内存只有同类方案的 1/3–1/40</p>
-    <code style="background:#ffffff;padding:16px 32px;border-radius:12px;border:2px solid #eaeaea;display:inline-block;font-family:'SF Mono',Menlo,monospace;font-size:1.125rem;font-weight:600">lspd web</code>
+    <div class="wrap">
+      <h1>同样的活儿，<br>少用 40 倍内存。</h1>
+      <p class="lede">
+        一个可执行文件，LSP over stdio。按子命令装载语言后端：<br>
+        TypeScript、JavaScript、HTML、CSS、SCSS、Sass、JSON。
+      </p>
+      <div class="cmd">
+        <code>lspd web</code>
+        <button class="copy" data-copy="lspd web" aria-label="复制命令">复制</button>
+      </div>
+    </div>
   </section>
 
-  <!-- Memory Comparison Bento Grid -->
-  <section class="memory-section">
-    <div class="bento-grid">
-      <!-- Web Stack (Large Card) -->
-      <div class="card card--mint span-3 row-span-2 reveal-in">
-        <h2>Web 栈内存对比</h2>
-        <div class="big-num">8.9<span class="num-unit">MB</span></div>
-        <p>vs vscode-html+css = <strong style="color:#ef4444">209.7 MB</strong></p>
-        <div style="margin-top:24px;display:flex;gap:12px;align-items:center">
-          <div style="flex:1;height:12px;background:#f0f0f0;border-radius:6px;overflow:hidden">
-            <div style="width:4.2%;height:100%;background:linear-gradient(90deg,#9aeecd,#b8ebd8);border-radius:6px"></div>
-          </div>
-          <span style="font-weight:600;font-size:0.9rem">节省 95.7%</span>
+  <!-- Benchmarks -->
+  <section id="benchmarks" class="section">
+    <div class="wrap">
+      <h2>同机实测</h2>
+      <p class="sub">同一台机器、同一份工程、同一套脚本。RSS 为被测进程常驻集。</p>
+
+      <div class="chart" data-chart>
+        <div class="chart-head">
+          <span>空闲内存</span>
+          <span class="unit">MB</span>
+        </div>
+
+        <div class="row" data-bar="3.7">
+          <span class="name strong">lspd ts</span>
+          <span class="track"><i></i></span>
+          <span class="val strong">3.7</span>
+        </div>
+        <div class="row" data-bar="9.6">
+          <span class="name">tsgo<span class="tag">官方 TS 7</span></span>
+          <span class="track"><i></i></span>
+          <span class="val">9.6</span>
+        </div>
+        <div class="row" data-bar="51.3">
+          <span class="name">typescript-language-server</span>
+          <span class="track"><i></i></span>
+          <span class="val">51.3</span>
+        </div>
+        <div class="row" data-bar="60.2">
+          <span class="name">vtsls</span>
+          <span class="track"><i></i></span>
+          <span class="val">60.2</span>
         </div>
       </div>
 
-      <!-- Startup Time -->
-      <div class="card card--yellow row-span-2 reveal-in" style="animation-delay:100ms">
-        <h2>启动时间</h2>
-        <div class="big-num">1.3<span class="num-unit">ms</span></div>
-        <p>vs tsserver <strong>311 ms</strong></p>
+      <div class="chart" data-chart>
+        <div class="chart-head">
+          <span>启动耗时</span>
+          <span class="unit">ms</span>
+        </div>
+
+        <div class="row" data-bar="1.3">
+          <span class="name strong">lspd ts</span>
+          <span class="track"><i></i></span>
+          <span class="val strong">1.3</span>
+        </div>
+        <div class="row" data-bar="6.8">
+          <span class="name">tsgo</span>
+          <span class="track"><i></i></span>
+          <span class="val">6.8</span>
+        </div>
+        <div class="row" data-bar="191.3">
+          <span class="name">typescript-language-server</span>
+          <span class="track"><i></i></span>
+          <span class="val">191.3</span>
+        </div>
+        <div class="row" data-bar="311.4">
+          <span class="name">vtsls</span>
+          <span class="track"><i></i></span>
+          <span class="val">311.4</span>
+        </div>
       </div>
 
-      <!-- TS Memory -->
-      <div class="card card--pink span-3 reveal-in" style="animation-delay:150ms">
-        <h2>TypeScript 工作态</h2>
-        <div class="big-num">16.7<span class="num-unit">MB</span></div>
-        <p>vs vtsls <strong>64.9 MB</strong> / tls <strong>57.5 MB</strong></p>
-      </div>
-      
-      <!-- Performance Metrics Row -->
-      <div class="card card--blue span-2 reveal-in" style="animation-delay:200ms">
-        <h2>Hover P50</h2>
-        <div class="big-num">0.23<span class="num-unit">ms</span></div>
-        <p>vs tls 1.39 ms</p>
-      </div>
-      
-      <div class="card card--purple span-2 reveal-in" style="animation-delay:250ms">
-        <h2>Completion P50</h2>
-        <div class="big-num">11.08<span class="num-unit">ms</span></div>
-        <p>vs tls 33.94 ms</p>
-      </div>
-      
-      <!-- Full Width Info Bar -->
-      <div class="card card--mint span-6 reveal-in" style="animation-delay:300ms;flex-direction:row;align-items:center;gap:24px">
-        <div style="flex:1">
-          <h2>五大语言后端</h2>
-          <p>补全 · 悬停 · 跳转定义 · 引用查找 · 重命名 · 诊断拉取 · 大纲 · 折叠</p>
+      <div class="chart" data-chart>
+        <div class="chart-head">
+          <span>Web 栈空闲内存</span>
+          <span class="unit">MB</span>
         </div>
-        <div style="flex:2;display:grid;grid-template-columns:repeat(5,1fr);gap:12px;text-align:center;font-size:0.9rem">
-          <div><span style="font-weight:700;color:#2d2a36;font-size:1.1rem">HTML</span><br>CSS/SCSS</div>
-          <div><span style="font-weight:700;color:#2d2a36;font-size:1.1rem">Sass</span><br>缩进语法</div>
-          <div><span style="font-weight:700;color:#2d2a36;font-size:1.1rem">JSON</span><br>schema 校验</div>
-          <div><span style="font-weight:700;color:#2d2a36;font-size:1.1rem">TypeScript</span><br>类型感知</div>
-          <div><span style="font-weight:700;color:#2d2a36;font-size:1.1rem">JavaScript</span><br>JSX/TSX</div>
+
+        <div class="row" data-bar="2.7">
+          <span class="name strong">lspd web<span class="tag">单进程，五语言</span></span>
+          <span class="track"><i></i></span>
+          <span class="val strong">2.7</span>
+        </div>
+        <div class="row" data-bar="72.1">
+          <span class="name">vscode-css-language-server</span>
+          <span class="track"><i></i></span>
+          <span class="val">72.1</span>
+        </div>
+        <div class="row" data-bar="137.6">
+          <span class="name">vscode-html-language-server</span>
+          <span class="track"><i></i></span>
+          <span class="val">137.6</span>
+        </div>
+      </div>
+
+      <p class="footnote">
+        要让编辑器同时具备 HTML 与 CSS 能力，vscode 方案需要两个进程，空闲合计 209.7 MB。
+        测量环境：Mac mini 2014 / 8 GB / macOS 12.7.6。
+      </p>
+
+      <div class="table-scroll">
+      <table class="table">
+        <caption>请求延迟（同一文件，15 次往返，毫秒）</caption>
+        <thead>
+          <tr>
+            <th scope="col">服务器</th>
+            <th scope="col">hover P50</th>
+            <th scope="col">completion P50</th>
+            <th scope="col">diagnostic P50</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="strong-row">
+            <td>lspd ts</td><td>0.23</td><td>11.08</td><td>0.28</td>
+          </tr>
+          <tr>
+            <td>tsgo</td><td>0.27</td><td>10.47</td><td>0.34</td>
+          </tr>
+          <tr>
+            <td>typescript-language-server</td><td>1.39</td><td>33.94</td><td>1.03</td>
+          </tr>
+          <tr>
+            <td>vtsls</td><td>2.19</td><td>3.36</td><td>1.22</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="footnote">
+        vtsls 的 completion 更快，是用内存换来的：它在 didOpen 时即构建完整 program
+        （空闲 60.2 MB），且返回候选少约 20%。它的 P95 反而更高。
+      </p>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="section">
+    <div class="wrap">
+      <h2>能力</h2>
+      <p class="sub">两个进程边界：TypeScript 的 program 跨文件常驻，Web 后端只跟随已打开文档。</p>
+
+      <div class="cols">
+        <div class="col">
+          <h3>lspd ts</h3>
+          <dl>
+            <dt>语言</dt><dd>TypeScript、TSX、JavaScript、JSX</dd>
+            <dt>补全</dt><dd>类型感知，含自动导入</dd>
+            <dt>导航</dt><dd>跳转定义、查找引用、重命名</dd>
+            <dt>诊断</dt><dd>语法与语义，LSP 3.17 拉取模式</dd>
+            <dt>结构</dt><dd>文档大纲、折叠范围、链接编辑</dd>
+            <dt>来源</dt><dd>移植自 oxc-project/tsrs，纯 Rust</dd>
+          </dl>
+        </div>
+        <div class="col">
+          <h3>lspd web</h3>
+          <dl>
+            <dt>语言</dt><dd>HTML、CSS、SCSS、Less、Sass、JSON</dd>
+            <dt>补全</dt><dd>标签、属性、属性值、属性名、at 规则</dd>
+            <dt>导航</dt><dd>id/class 跳转、变量定义与引用</dd>
+            <dt>诊断</dt><dd>结构错误、未知属性、schema 约束</dd>
+            <dt>结构</dt><dd>大纲、折叠、选择范围、标签联动改名</dd>
+            <dt>颜色</dt><dd>内联色块与格式转换</dd>
+          </dl>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Detailed Benchmarks Comparison Chart -->
-  <section class="benchmarks-section">
-    <div class="container" style="max-width:1200px;padding:60px 20px">
-      <h2>与官方 LSP 深度对比</h2>
-      
-      <!-- Memory Chart -->
-      <div class="chart-container reveal-in">
-        <h3>空闲内存对比 (MB)</h3>
-        <div class="bar-chart">
-          <div class="bar-row">
-            <div class="bar-label">lspd ts</div>
-            <div class="bar-track"><div class="bar-fill highlight" data-value="6"><span class="bar-value">3.7 MB</span></div></div>
-          </div>
-          <div class="bar-row">
-            <div class="bar-label">tsgo</div>
-            <div class="bar-track"><div class="bar-fill" data-value="16"><span class="bar-value">9.6 MB</span></div></div>
-          </div>
-          <div class="bar-row">
-            <div class="bar-label">typescript-lsp</div>
-            <div class="bar-track"><div class="bar-fill" data-value="88"><span class="bar-value">51.3 MB</span></div></div>
-          </div>
-          <div class="bar-row">
-            <div class="bar-label">vtsls</div>
-            <div class="bar-track"><div class="bar-fill" data-value="100"><span class="bar-value">60.2 MB</span></div></div>
-          </div>
-        </div>
+  <!-- Editors -->
+  <section id="editors" class="section">
+    <div class="wrap">
+      <h2>接入编辑器</h2>
+      <p class="sub">
+        lspd 是标准 LSP 服务器，只走 stdio。任何能填 command + args、
+        能按语言绑定服务器、且支持 stdio 的编辑器都能用。
+      </p>
+
+      <div class="tabs" role="tablist" aria-label="编辑器">
+        <button role="tab" aria-selected="true" data-tab="openidea">OpenIDEA</button>
+        <button role="tab" aria-selected="false" data-tab="neovim">Neovim</button>
+        <button role="tab" aria-selected="false" data-tab="helix">Helix</button>
+        <button role="tab" aria-selected="false" data-tab="vscode">VSCode</button>
+        <button role="tab" aria-selected="false" data-tab="vim">Vim</button>
       </div>
-      
-      <!-- Startup Time Chart -->
-      <div class="chart-container reveal-in" style="animation-delay:100ms">
-        <h3>启动时间对比 (ms)</h3>
-        <div class="bar-chart">
-          <div class="bar-row">
-            <div class="bar-label">lspd ts</div>
-            <div class="bar-track"><div class="bar-fill highlight" data-value="0.5"><span class="bar-value">1.3 ms</span></div></div>
-          </div>
-          <div class="bar-row">
-            <div class="bar-label">tsgo</div>
-            <div class="bar-track"><div class="bar-fill" data-value="2"><span class="bar-value">6.8 ms</span></div></div>
-          </div>
-          <div class="bar-row">
-            <div class="bar-label">typescript-lsp</div>
-            <div class="bar-track"><div class="bar-fill" data-value="62"><span class="bar-value">191 ms</span></div></div>
-          </div>
-          <div class="bar-row">
-            <div class="bar-label">vtsls</div>
-            <div class="bar-track"><div class="bar-fill" data-value="100"><span class="bar-value">311 ms</span></div></div>
-          </div>
+
+      <div class="panels">
+        <div class="panel" data-panel="openidea">
+          <p class="panel-note">Settings → Languages &amp; Frameworks → Language Servers → <kbd>+</kbd>，建两条。</p>
+          <pre><code>Name:       lspd web
+Command:    /usr/local/bin/lspd web
+Languages:  HTML, CSS, SCSS, Less, Sass, JSON</code></pre>
+          <pre><code>Name:       lspd ts
+Command:    /usr/local/bin/lspd ts
+Languages:  TypeScript, TypeScript React, JavaScript, JavaScript React</code></pre>
+          <p class="panel-note">右上有 Global / This project 范围开关。内置的同类服务器要先关掉，否则两份补全互相打架。</p>
+        </div>
+
+        <div class="panel" data-panel="neovim">
+          <p class="panel-note">Neovim ≥ 0.8 自带 LSP 客户端，不需要 lspconfig。</p>
+          <pre><code>local lspd = "/usr/local/bin/lspd"
+
+local servers = {
+  { name = "lspd-web", cmd = { lspd, "web" },
+    filetypes = { "html", "css", "scss", "less", "sass", "json" } },
+  { name = "lspd-ts", cmd = { lspd, "ts" },
+    filetypes = { "typescript", "typescriptreact", "javascript", "javascriptreact" } },
+}
+
+local by_ft = {}
+for _, s in ipairs(servers) do
+  for _, ft in ipairs(s.filetypes) do by_ft[ft] = s end
+end
+
+vim.api.nvim_create_autocmd("FileType", {
+  callback = function(args)
+    local s = by_ft[vim.bo[args.buf].filetype]
+    if not s then return end
+    local root = vim.fs.dirname(vim.fs.find({ ".git" }, { upward = true })[1])
+    vim.lsp.start({ name = s.name, cmd = s.cmd, root_dir = root or vim.fn.getcwd() },
+                  { bufnr = args.buf })
+  end,
+})</code></pre>
+        </div>
+
+        <div class="panel" data-panel="helix">
+          <p class="panel-note">Helix ≥ 23.05，编辑 <code>~/.config/helix/languages.toml</code>。</p>
+          <pre><code>[language-server.lspd-web]
+command = "lspd"
+args = ["web"]
+
+[language-server.lspd-ts]
+command = "lspd"
+args = ["ts"]
+
+[[language]]
+name = "html"
+language-servers = ["lspd-web"]
+
+[[language]]
+name = "css"
+language-servers = ["lspd-web"]
+
+[[language]]
+name = "typescript"
+language-servers = ["lspd-ts"]
+
+[[language]]
+name = "tsx"
+language-servers = ["lspd-ts"]</code></pre>
+        </div>
+
+        <div class="panel" data-panel="vscode">
+          <p class="panel-note">
+            VSCode 没有「填一行命令就能用」的内置入口，需要通用 LSP 客户端扩展，
+            或自己写一个薄扩展用 <code>vscode-languageclient</code>。
+            另外要关掉内置的 TypeScript / HTML / CSS 服务，否则两份诊断重复。
+          </p>
+          <pre><code>// extension.ts
+const web = new LanguageClient("lspd-web", "lspd (Web)",
+  { command: "/usr/local/bin/lspd", args: ["web"], transport: TransportKind.stdio },
+  { documentSelector: ["html", "css", "scss", "less", "sass", "json"] });
+
+const ts = new LanguageClient("lspd-ts", "lspd (TypeScript)",
+  { command: "/usr/local/bin/lspd", args: ["ts"], transport: TransportKind.stdio },
+  { documentSelector: ["typescript", "typescriptreact",
+                       "javascript", "javascriptreact"] });</code></pre>
+        </div>
+
+        <div class="panel" data-panel="vim">
+          <p class="panel-note">Vim 没有内置 LSP，需要 vim-lsp 或 coc.nvim。</p>
+          <pre><code>augroup lspd
+  autocmd!
+  autocmd User lsp_setup call lsp#register_server({
+    \ 'name': 'lspd-web',
+    \ 'cmd': { server_info -> ['/usr/local/bin/lspd', 'web'] },
+    \ 'allowlist': ['html', 'css', 'scss', 'less', 'sass', 'json'],
+    \ })
+  autocmd User lsp_setup call lsp#register_server({
+    \ 'name': 'lspd-ts',
+    \ 'cmd': { server_info -> ['/usr/local/bin/lspd', 'ts'] },
+    \ 'allowlist': ['typescript', 'typescriptreact', 'javascript', 'javascriptreact'],
+    \ })
+augroup END</code></pre>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Editors Section with Code Cards -->
-  <section class="editors-section" style="padding:80px 20px">
-    <div class="container" style="max-width:1200px">
-      <h2>接入任意编辑器</h2>
-      
-      <!-- Editor Tabs -->
-      <div class="editor-tabs">
-        <button class="editor-tab-btn active" data-editor="openidea">OpenIDEA</button>
-        <button class="editor-tab-btn" data-editor="neovim">Neovim</button>
-        <button class="editor-tab-btn" data-editor="helix">Helix</button>
-        <button class="editor-tab-btn" data-editor="vscode">VSCode</button>
-      </div>
-      
-      <!-- Code Cards Area -->
-      <div id="code-cards-area" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(500px,1fr));gap:24px">
-        <!-- Injected by JS -->
-      </div>
+  <!-- Install -->
+  <section class="section" id="install">
+    <div class="wrap">
+      <h2>安装</h2>
+      <p class="sub">从 Releases 下载对应平台的压缩包，解压后是单个可执行文件，不需要任何运行时。</p>
+      <pre class="install"><code>tar -xzf lspd-v0.1.0-x86_64-apple-darwin.tar.gz
+shasum -a 256 -c lspd-v0.1.0-x86_64-apple-darwin.tar.gz.sha256
+sudo mv lspd /usr/local/bin/
+lspd --version</code></pre>
+      <p class="footnote">
+        编辑器从图形界面启动时拿不到终端的 <code>$PATH</code>，配置里一律填绝对路径。
+      </p>
     </div>
   </section>
 
-  <!-- Footer -->
-  <footer>
-    <p>lspd · Site JS 4.1 KB · No frameworks · System fonts only</p>
-  </footer>
+</main>
 
-  <script type="module" src="/src/main.ts"></script>
+<footer class="site-footer">
+  <div class="wrap">
+    <span>lspd <span class="dim" data-version>0.1.0</span></span>
+    <span class="dim" data-size>本站 JS — · 无框架 · 无网络字体 · 无追踪</span>
+  </div>
+</footer>
+
+<script type="module" src="/src/main.ts"></script>
 </body>
 </html>
