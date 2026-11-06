@@ -1,0 +1,89 @@
+name: Release
+
+# 推送 v 开头的标签即构建并发布，例如：
+#   git tag v0.1.0 && git push origin v0.1.0
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: 构建 ${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: linux-x86_64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - label: macos-aarch64
+            os: macos-latest
+            target: aarch64-apple-darwin
+          - label: macos-x86_64
+            os: macos-latest
+            target: x86_64-apple-darwin
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # 工具链由仓库根目录的 rust-toolchain.toml 指定（1.99.1），rustup 会自动安装
+      - name: 显示工具链
+        run: |
+          rustup show active-toolchain || true
+          rustc --version
+
+      # 编译缓存：首次仍会全量编译，之后命中可显著缩短
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.label }}
+
+      # 项目只允许 Rust：此处不安装任何 C 工具链（cmake/cc），
+      # 若依赖树里混入需要 C 编译的 crate，这一步就会失败，属于预期行为。
+      - name: 构建
+        run: cargo build --release --locked -p lspd --target ${{ matrix.target }}
+
+      - name: 打包
+        run: |
+          mkdir -p dist
+          cp "target/${{ matrix.target }}/release/lspd" dist/
+          tar -czf "dist/lspd-${GITHUB_REF_NAME}-${{ matrix.target }}.tar.gz" -C dist lspd
+          shasum -a 256 "dist/lspd-${GITHUB_REF_NAME}-${{ matrix.target }}.tar.gz" > "dist/lspd-${GITHUB_REF_NAME}-${{ matrix.target }}.tar.gz.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lspd-${{ matrix.target }}
+          path: dist/*
+
+  release:
+    name: 发布
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: 归集产物
+        run: |
+          mkdir -p release
+          find artifacts -type f \( -name "*.tar.gz" -o -name "*.sha256" \) -exec cp {} release/ \;
+          ls -l release
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
+          body: |
+            `lspd` —— 低内存多语言语言服务器，单可执行文件，LSP over stdio。
+
+            用法：
+            ```bash
+            lspd web   # HTML / CSS / SCSS / Sass / JSON
+            lspd ts    # TypeScript / JavaScript
+            ```
+
+            解压后直接运行；编辑器按 languageId 分别启动对应子命令。
