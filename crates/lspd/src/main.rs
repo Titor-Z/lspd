@@ -4,6 +4,12 @@
 //! 编辑器按 languageId 分别启动 `lspd ts` 与 `lspd web`，跨语言分流由编辑器承担，
 //! 因此本程序不需要在一个 stdio 上多路复用多种语言。
 
+// 可选堆：实测 mimalloc 在 web 栈省约 1 MB，但在 TS 栈多约 3 MB（program 常驻，purge 无从回收）。
+// 因此默认用系统 allocator，需要时由 feature 开启。
+#[cfg(feature = "mimalloc")]
+#[global_allocator]
+static GLOBAL: mimalloc_safe::MiMalloc = mimalloc_safe::MiMalloc;
+
 use std::process::ExitCode;
 
 use lspd_core::Backend;

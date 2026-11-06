@@ -238,6 +238,17 @@ def main():
         action="store_true",
         help="didOpen 后发一次 completion 请求，触发懒加载的语言服务（program/类型检查）再采样",
     )
+    parser.add_argument(
+        "--close-all",
+        action="store_true",
+        help="probe 后依次 didClose 所有已打开文件再采样，验证会话收缩时的内存回落",
+    )
+    parser.add_argument(
+        "--release-wait",
+        type=float,
+        default=0.0,
+        help="probe 后静置的秒数，到时再采样一次 RSS，用于观察空闲后是否归还内存；0 表示不测",
+    )
     parser.add_argument("command", nargs=argparse.REMAINDER, help="-- 之后的服务器命令")
     args = parser.parse_args()
 
@@ -310,6 +321,21 @@ def main():
     result["open_mb"] = round((server.rss_kb() or 0) / 1024.0, 1)
     result["peak_mb"] = round(sampler.peak_kb / 1024.0, 1)
 
+    # 关闭全部文档：program 只有在没有打开的文件时才可能收缩。
+    if args.close_all:
+        for path in files:
+            server.notify(
+                "textDocument/didClose",
+                {"textDocument": {"uri": path_to_uri(path)}},
+            )
+        time.sleep(args.settle)
+        result["closed_mb"] = round((server.rss_kb() or 0) / 1024.0, 1)
+
+    # 静置后重新采样：验证服务器在空闲时是否把已释放的内存归还给操作系统。
+    if args.release_wait > 0:
+        time.sleep(args.release_wait)
+        result["relaxed_mb"] = round((server.rss_kb() or 0) / 1024.0, 1)
+
     server.request("shutdown", None, 10.0)
     server.close()
     report(result, args.json_out)
@@ -332,6 +358,10 @@ def report(result, json_out):
     print("  空闲 RSS    : %s" % format_mb(result.get("idle_mb")))
     print("  打开后 RSS  : %s" % format_mb(result.get("open_mb")))
     print("  峰值 RSS    : %s" % format_mb(result.get("peak_mb")))
+    if "closed_mb" in result:
+        print("  关闭后 RSS  : %s" % format_mb(result.get("closed_mb")))
+    if "relaxed_mb" in result:
+        print("  静置后 RSS  : %s" % format_mb(result.get("relaxed_mb")))
     print("  状态        : %s" % result["status"])
     if json_out:
         with open(json_out, "a+", encoding="utf-8") as handle:

@@ -29,7 +29,8 @@ lspd-tsbridge = { path = "crates/lspd-tsbridge" }
 [profile.release]
 opt-level = 3
 lto = "thin"
-codegen-units = 1
+# 1 会让全量 release 构建在 8GB 机器上超过 40 分钟并触发 OOM；16 对 RSS 无影响，启动差异在 2% 以内。
+codegen-units = 16
 strip = "symbols"
 panic = "unwind"
 
