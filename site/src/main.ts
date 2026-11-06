@@ -1,124 +1,85 @@
-// Bento Grid + 马卡龙配色官网逻辑
+// Bento Grid + Macaron + Bold Typography
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Tab switching with stagger animation
-  initTabs();
-  
-  // Hover tilt effect for cards
-  initTiltEffect();
+  initEditorTabs();
+  initChartAnimations();
 });
 
-function initTabs() {
-  const tabs = document.querySelectorAll('.tab-btn') as NodeListOf<HTMLButtonElement>;
+function initEditorTabs() {
+  const tabButtons = document.querySelectorAll('.editor-tab-btn') as NodeListOf<HTMLButtonElement>;
   
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      // Remove active class from all tabs
-      tabs.forEach(t => {
-        t.classList.remove('active');
-        t.setAttribute('aria-selected', 'false');
-      });
+  tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
       
-      // Add active to clicked tab
-      tab.classList.add('active');
-      tab.setAttribute('aria-selected', 'true');
-      
-      const tabId = (tab as any).dataset.tab;
-      if (!tabId) return;
-      
-      // Show content
-      renderTabContent(tabId);
+      const editor = (btn as any).dataset.editor;
+      renderCodeCards(editor);
     });
   });
   
-  // Initialize first tab
-  renderTabContent('openidea');
+  renderCodeCards('openidea');
 }
 
-function renderTabContent(key: string) {
-  const container = document.getElementById('tab-content')!;
+function renderCodeCards(editor: string) {
+  const container = document.getElementById('code-cards-area')!;
   
-  const configs: Record<string, string> = {
-    openidea: `# Settings → Languages & Frameworks → Language Servers → +
-
-【Web】
-Name: lspd web
-Command: /usr/local/bin/lspd web
-Languages: HTML, CSS, SCSS, Less, Sass, JSON
-
-【TypeScript】
-Name: lspd ts
-Command: /usr/local/bin/lspd ts
-Languages: TypeScript, JavaScript`,
-    
-    neovim: `-- init.lua
-local lspd = "/usr/local/bin/lspd"
-
-vim.lsp.start({
-  name = "lspd-web",
-  cmd = { lspd, "web" }
-}, { bufnr = vim.api.nvim_get_current_buf() })
-
-vim.lsp.start({
-  name = "lspd-ts",
-  cmd = { lspd, "ts" }
-}, { bufnr = vim.api.nvim_get_current_buf() })`,
-    
-    helix: `# ~/.config/helix/languages.toml
-[language-server.lspd-web]
-command = "lspd"
-args = ["web"]
-
-[[language]]
-name = "html"
-language-servers = ["lspd-web"]
-
-[language-server.lspd-ts]
-command = "lspd"
-args = ["ts"]
-
-[[language]]
-name = "typescript"
-language-servers = ["lspd-ts"]`,
-    
-    vscode: `{
-  // settings.json（需配合 LSP 扩展）
-  "languageserver": {
-    "lspd-web": {
-      "command": "/usr/local/bin/lspd",
-      "args": ["web"],
-      "filetypes": ["html","css","scss"]
-    },
-    "lspd-ts": {
-      "command": "/usr/local/bin/lspd",
-      "args": ["ts"],
-      "filetypes": ["typescript","javascript"]
-    }
-  }
-}`
+  const configs: Record<string, Array<{ name: string; cmd: string[]; lang?: string }>> = {
+    openidea: [
+      { name: 'Web Server', cmd: ['/usr/local/bin/lspd web'], lang: 'Command' },
+      { name: 'TypeScript Server', cmd: ['/usr/local/bin/lspd ts'], lang: 'Command' }
+    ],
+    neovim: [
+      { name: 'init.lua (web)', cmd: ['vim.lsp.start({\n  name = "lspd-web",\n  cmd = { lspd, "web" }\n})'], lang: 'Lua' },
+      { name: 'init.lua (ts)', cmd: ['vim.lsp.start({\n  name = "lspd-ts",\n  cmd = { lspd, "ts" }\n})'], lang: 'Lua' }
+    ],
+    helix: [
+      { name: 'languages.toml', cmd: ['[language-server.lspd-web]\ncommand = "lspd"\nargs = ["web"]'], lang: 'TOML' },
+      { name: 'languages.toml (TS)', cmd: ['[language-server.lspd-ts]\ncommand = "lspd"\nargs = ["ts"]'], lang: 'TOML' }
+    ],
+    vscode: [
+      { name: 'settings.json', cmd: ['{\n  "languageserver": {\n    "lspd-web": {\n      "command": "/usr/local/bin/lspd",\n      "args": ["web"]\n    }\n  }\n}'], lang: 'JSON' }
+    ]
   };
   
-  const code = escapeHtml(configs[key]);
-  const lines = code.split('\n').filter(l => l.trim());
+  const configData = configs[editor] || configs.openidea;
   
-  let html = '<pre><code>';
-  lines.forEach((line, i) => {
-    const delayClass = 'stagger-' + Math.min(5, Math.floor(i / 3) + 1);
-    html += `<span class="${delayClass}">${line}</span>\n`;
+  let html = '';
+  configData.forEach((item, index) => {
+    const timeoutDelay = index * 150;
+    
+    html += `<div class="code-card reveal-in" data-delay="${timeoutDelay}">
+      <div class="code-header">
+        <div class="code-dots">
+          <span class="code-dot red"></span>
+          <span class="code-dot yellow"></span>
+          <span class="code-dot green"></span>
+        </div>
+        <div class="code-title">${item.name} · <span style="color:#8b8896;font-size:0.8rem">${item.lang}</span></div>
+      </div>
+      <pre><code>${escapeHtml(item.cmd.join('\n'))}</code></pre>
+    </div>`;
   });
-  html += '</code></pre>';
   
   container.innerHTML = html;
   
-  // Reveal animation
-  container.style.display = 'block';
-  container.style.opacity = '0';
-  container.style.transform = 'translateY(20px)';
-  
+  // Trigger reveal animation
   requestAnimationFrame(() => {
-    container.style.transition = 'opacity 0.6s ease-out, transform 0.6s cubic-bezier(0.215, 0.61, 0.355, 1)';
-    container.style.opacity = '1';
-    container.style.transform = 'translateY(0)';
+    const elements = container.querySelectorAll('.reveal-in') as NodeListOf<Element>;
+    elements.forEach(el => {
+      const elTyped = el as HTMLElement;
+      elTyped.style.opacity = '0';
+      elTyped.style.transform = 'translateY(30px)';
+    });
+    
+    setTimeout(() => {
+      elements.forEach(el => {
+        const elTyped = el as HTMLElement;
+        elTyped.style.transition = 'opacity 0.6s cubic-bezier(0.215,0.61,0.355,1), transform 0.6s cubic-bezier(0.215,0.61,0.355,1)';
+        elTyped.style.opacity = '1';
+        elTyped.style.transform = 'translateY(0)';
+      });
+    }, 100);
   });
 }
 
@@ -126,27 +87,46 @@ function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// 3D Tilt Effect
-function initTiltEffect() {
-  const cards = document.querySelectorAll('.card') as NodeListOf<HTMLElement>;
+function initChartAnimations() {
+  const bars = document.querySelectorAll('.bar-fill');
   
-  cards.forEach(card => {
-    card.addEventListener('mousemove', (e) => {
-      const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
-      
-      const rotateX = ((y - centerY) / centerY) * -5; // max -5 to 5 deg
-      const rotateY = ((x - centerX) / centerX) * 5;
-      
-      card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const bar = entry.target as HTMLElement;
+        const value = parseFloat(bar.dataset.value || '0');
+        
+        requestAnimationFrame(() => {
+          bar.style.width = value + '%';
+        });
+        
+        observer.unobserve(bar);
+      }
     });
-    
-    card.addEventListener('mouseleave', () => {
-      card.style.transform = 'perspective(800px) rotateX(0) rotateY(0)';
-    });
-  });
+  }, { threshold: 0.5 });
+  
+  bars.forEach(bar => observer.observe(bar));
 }
+
+const cards = document.querySelectorAll('.card') as NodeListOf<HTMLElement>;
+cards.forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    
+    const rotateX = ((y - centerY) / centerY) * -6;
+    const rotateY = ((x - centerX) / centerX) * 6;
+    
+    card.style.setProperty('--rx', `${rotateX}deg`);
+    card.style.setProperty('--ry', `${rotateY}deg`);
+  });
+  
+  card.addEventListener('mouseleave', () => {
+    card.style.setProperty('--rx', `0deg`);
+    card.style.setProperty('--ry', `0deg`);
+  });
+});

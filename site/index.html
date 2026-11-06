@@ -4,168 +4,245 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>lspd — Low-memory multi-language LSP server</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
   <style>
-    /* CSS Reset & Base */
+    /* CSS Reset */
     *,*::before,*::after{box-sizing:border-box}
-    body{margin:0;background:#faf9fa;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#2d2a36;overflow-x:hidden}
+    
+    /* Global Styles with Bold Typography */
+    body{margin:0;background:#faf9fa;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#2d2a36;overflow-x:hidden;line-height:1.5}
+    
+    /* Bold Typography Scale */
+    h1,h2,h3{font-weight:700;margin:0;letter-spacing:-0.02em}
+    h1{font-size:clamp(3rem,12vw,7rem);line-height:1.1;letter-spacing:-0.04em;padding-top:40px}
+    h2{font-size:clamp(1.75rem,5vw,3rem);padding-bottom:16px;border-bottom:3px solid #eaeaea;margin-bottom:24px;display:inline-block}
+    h3{font-size:clamp(1.1rem,3vw,1.5rem);color:#5a5564;margin-bottom:8px}
+    
+    p{margin:8px 0;font-size:clamp(1rem,2.5vw,1.25rem)}
     
     /* Bento Grid Layout */
-    .bento-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(8px,2vw,16px)}
+    .bento-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:clamp(12px,3vw,24px);margin:40px auto;max-width:1400px;padding:20px}
     
-    /* Responsive Breakpoints */
+    @media (max-width:1024px){.bento-grid{grid-template-columns:repeat(2,1fr)}}
     @media (max-width:768px){.bento-grid{grid-template-columns:1fr}}
-    @media (min-width:769px) and (max-width:1024px){.bento-grid{grid-template-columns:repeat(2,1fr)}}
-    @media (min-width:1025px){.bento-grid{grid-template-columns:repeat(4,1fr)}}
     
     /* Card Base */
-    .card{position:relative;min-height:160px;background:#fff;border-radius:16px;transition:transform 0.6s cubic-bezier(0.215,0.61,0.355,1),border-radius 0.3s,box-shadow 0.3s;display:flex;flex-direction:column;justify-content:center;padding:clamp(16px,3vw,24px)}
+    .card{position:relative;background:#fff;border-radius:20px;transition:transform 0.6s cubic-bezier(0.215,0.61,0.355,1),box-shadow 0.3s;display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,5vw,40px)}
     
-    /* Colored Card Variants (Macaron Theme) */
-    .card--pink{background:linear-gradient(135deg,#ffdce0 0%,#ffebf2 100%);border:2px solid #ffc0cb}
-    .card--mint{background:linear-gradient(135deg,#d4f4e8 0%,#ebf7ee 100%);border:2px solid #b8ebd8}
-    .card--blue{background:linear-gradient(135deg,#daeefc 0%,#f0f7fe 100%);border:2px solid #a0d2ef}
-    .card--yellow{background:linear-gradient(135deg,#fffbe6 0%,#fffdf0 100%);border:2px solid #fffacd}
-    .card--purple{background:linear-gradient(135deg,#ede7f6 0%,#f5f3fc 100%);border:2px solid #d6cde2}
+    /* Macaron Gradient Themes */
+    .card--pink{background:linear-gradient(135deg,#ffdce0 0%,#ffebf2 100%);border:3px solid #ffb9c7}
+    .card--mint{background:linear-gradient(135deg,#d4f4e8 0%,#ebf7ee 100%);border:3px solid #9aeecd}
+    .card--blue{background:linear-gradient(135deg,#daeefc 0%,#f0f7fe 100%);border:3px solid #8ac1fb}
+    .card--yellow{background:linear-gradient(135deg,#fffbe6 0%,#fffdf0 100%);border:3px solid #fef5ab}
+    .card--purple{background:linear-gradient(135deg,#ede7f6 0%,#f5f3fc 100%);border:3px solid #c6b9e2}
     
-    /* Hover Effects */
-    .card:hover{z-index:10;box-shadow:0 20px 40px rgba(0,0,0,0.12);transition:transform 0.5s ease-out,box-shadow 0.3s}
-    .card:hover::after{content:'';position:absolute;inset:-2px;border-radius:18px;opacity:0;animation:none}
-    .card:hover.pink::after{border:2px solid #ffb9c7;opacity:0.3;transition:opacity 0.3s}
-    .card:hover.mint::after{border:2px solid #9aeecd;opacity:0.3;transition:opacity 0.3s}
-    .card:hover.blue::after{border:2px solid #8ac1fb;opacity:0.3;transition:opacity 0.3s}
-    .card:hover.yellow::after{border:2px solid #fef5ab;opacity:0.3;transition:opacity 0.3s}
-    .card:hover.purple::after{border:2px solid #c6b9e2;opacity:0.3;transition:opacity 0.3s}
+    .card:hover{z-index:10;box-shadow:0 25px 50px rgba(0,0,0,0.15);transform:perspective(800px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));border-color:var(--hover-border)}
     
-    /* Typography */
-    h1,h2{font-weight:700;margin:0}
-    h1{font-size:clamp(2.5rem,8vw,5rem);letter-spacing:-0.03em;line-height:1.1}
-    h2{font-size:clamp(1.25rem,4vw,2rem);letter-spacing:-0.01em;margin-bottom:8px}
-    p{margin:8px 0 0;color:#5a5564;font-size:clamp(0.9rem,2vw,1rem)}
+    /* Colored Borders on Hover */
+    .card.pink:hover{--hover-border:#ffb9c7}
+    .card.mint:hover{--hover-border:#9aeecd}
+    .card.blue:hover{--hover-border:#8ac1fb}
+    .card.yellow:hover{--hover-border:#fef5ab}
+    .card.purple:hover{--hover-border:#c6b9e2}
     
-    /* Numbers */
-    .big-num{font-size:clamp(3rem,12vw,8rem);font-weight:700;letter-spacing:-0.04em}
-    .num-unit{font-size:clamp(0.8rem,2vw,1.2rem);color:#5a5564}
+    /* Big Numbers */
+    .big-num{font-size:clamp(4rem,18vw,10rem);font-weight:700;letter-spacing:-0.06em;line-height:1;position:relative}
+    .num-unit{font-size:clamp(1rem,3vw,1.5rem);vertical-align:top;margin-left:4px;font-weight:500}
     
     /* Hero Section */
-    .hero{text-align:center;padding:clamp(60px,15vh,120px) 20px;background:radial-gradient(circle at top,#f5f4f7 0%,#faf9fa 70%)}
+    .hero{text-align:center;padding:clamp(80px,20vh,160px) 20px;background:radial-gradient(circle at top,#f5f4f7 0%,#faf9fa 70%)}
     
     /* Grid Span Classes */
     .span-2{grid-column:span 2}
     .span-3{grid-column:span 3}
     .span-4{grid-column:span 4}
+    .span-6{grid-column:span 6}
     .row-span-2{grid-row:span 2}
     
-    /* Table Styles */
-    table{width:100%;border-collapse:separate;border-spacing:0;margin:20px 0}
-    th,td{padding:12px;text-align:left;border-bottom:1px solid #eaeaea}
-    th{font-weight:600;background:#fafafa;border-bottom-width:2px}
-    tr:last-child td{border-bottom:none}
+    /* Code Card Component */
+    .code-card{background:#ffffff;border-radius:24px;border:2px solid #eaeaea;box-shadow:0 10px 30px rgba(0,0,0,0.08);overflow:hidden;transition:transform 0.3s,box-shadow 0.3s}
+    .code-card:hover{transform:translateY(-8px);box-shadow:0 20px 40px rgba(0,0,0,0.12)}
     
-    /* Code Block */
-    pre{background:#fafafa;padding:12px;border-radius:8px;font-family:'SF Mono',Menlo,monospace;font-size:0.85rem;line-height:1.5;overflow-x:auto;color:#2d2a36}
+    .code-header{background:#f8f9fa;padding:16px 24px;border-bottom:1px solid #eaeaea;display:flex;align-items:center;gap:12px}
+    .code-dots{display:flex;gap:8px}
+    .code-dot{width:12px;height:12px;border-radius:50%;background:#d1d5db}
+    .code-dot.red{background:#ef4444}
+    .code-dot.yellow{background:#f59e0b}
+    .code-dot.green{background:#10b981}
+    
+    .code-title{flex:1;text-align:left;font-size:0.9rem;font-weight:600;color:#4b5563}
+    
+    pre{margin:0;background:#fafafa;padding:24px;font-family:'SF Mono',Menlo,Monaco,'Courier New',monospace;font-size:0.9rem;line-height:1.6;overflow-x:auto;color:#374151;border:none}
+    
+    /* Editor Tabs */
+    .editor-tabs{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:32px}
+    .editor-tab-btn{padding:14px 24px;border-radius:12px;border:2px solid #eaeaea;background:#fff;color:#4b5563;font-size:1rem;font-weight:600;cursor:pointer;transition:all 0.3s}
+    .editor-tab-btn:hover{border-color:#a0d2ef;color:#2d2a36}
+    .editor-tab-btn.active{background:linear-gradient(135deg,#daeefc 0%,#f0f7fe 100%);border-color:#8ac1fb;color:#2d2a36;font-weight:700}
+    
+    /* Chart Styles */
+    .chart-container{background:#fff;border-radius:20px;padding:clamp(24px,4vw,40px);margin:20px 0;box-shadow:0 10px 30px rgba(0,0,0,0.05)}
+    .bar-chart{display:flex;flex-direction:column;gap:16px;margin-top:24px}
+    .bar-row{display:flex;align-items:center;gap:16px}
+    .bar-label{width:200px;font-weight:600;font-size:1rem;color:#374151}
+    .bar-track{flex:1;height:32px;background:#f3f4f6;border-radius:16px;overflow:hidden;position:relative}
+    .bar-fill{height:100%;border-radius:16px;transition:width 1.2s cubic-bezier(0.4,0,0.2,1);position:relative}
+    .bar-fill.highlight{background:linear-gradient(90deg,#9aeecd,#b8ebd8)}
+    .bar-value{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-weight:700;font-size:0.9rem;white-space:nowrap}
+    .bar-fill.highlight .bar-value{color:#2d2a36}
     
     /* Footer */
-    footer{text-align:center;padding:40px 20px;font-size:0.85rem;color:#8b8896}
+    footer{text-align:center;padding:60px 20px;font-size:1rem;color:#8b8896}
+    
+    /* Animation Keyframes */
+    @keyframes fadeInUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+    .reveal-in{animation:fadeInUp 0.8s cubic-bezier(0.215,0.61,0.355,1) forwards}
   </style>
 </head>
 <body>
-  <main class="container">
-    <!-- Hero -->
-    <section class="hero">
-      <h1 data-reveal>静默的重量</h1>
-      <p style="font-size:clamp(1rem,3vw,1.3rem);max-width:600px;margin:20px auto;">低内存多语言 LSP 服务器 · TypeScript、HTML/CSS/SCSS/Sass/JSON · 工作态内存 1/3–1/40</p>
-      <code style="background:#ffffff;padding:12px 24px;border-radius:8px;border:1px solid #eaeaea;display:inline-block;font-family:'SF Mono',Menlo,monospace;">lspd web</code>
-    </section>
+  <!-- Hero -->
+  <section class="hero">
+    <h1 data-reveal>静默的重量</h1>
+    <p style="font-size:clamp(1.25rem,4vw,1.75rem);max-width:800px;margin:24px auto;color:#5a5564">低内存多语言 LSP · TypeScript、HTML/CSS/SCSS/Sass/JSON · 工作态内存只有同类方案的 1/3–1/40</p>
+    <code style="background:#ffffff;padding:16px 32px;border-radius:12px;border:2px solid #eaeaea;display:inline-block;font-family:'SF Mono',Menlo,monospace;font-size:1.125rem;font-weight:600">lspd web</code>
+  </section>
 
-    <!-- Bento Grid Memory Comparison -->
-    <section class="bento-section">
-      <div class="container bento-grid">
-        <!-- Web Stack Comparison (Large Card) -->
-        <div class="card card--mint span-2 row-span-2">
-          <h2>Web 栈内存对比</h2>
-          <div class="big-num">8.9<span class="num-unit">MB</span></div>
-          <p>lspd web · 同工程下 vscode-html/css 合计需 <strong>209.7 MB</strong></p>
-          <div style="margin-top:16px;height:6px;background:#f0f0f0;border-radius:3px;overflow:hidden">
-            <div style="width:100%;height:100%;background:linear-gradient(90deg,#9aeecd,#b8ebd8)"></div>
+  <!-- Memory Comparison Bento Grid -->
+  <section class="memory-section">
+    <div class="bento-grid">
+      <!-- Web Stack (Large Card) -->
+      <div class="card card--mint span-3 row-span-2 reveal-in">
+        <h2>Web 栈内存对比</h2>
+        <div class="big-num">8.9<span class="num-unit">MB</span></div>
+        <p>vs vscode-html+css = <strong style="color:#ef4444">209.7 MB</strong></p>
+        <div style="margin-top:24px;display:flex;gap:12px;align-items:center">
+          <div style="flex:1;height:12px;background:#f0f0f0;border-radius:6px;overflow:hidden">
+            <div style="width:4.2%;height:100%;background:linear-gradient(90deg,#9aeecd,#b8ebd8);border-radius:6px"></div>
           </div>
-          <p style="margin-top:8px;font-size:0.85rem;color:#8b8896">节省 95.7% 内存</p>
+          <span style="font-weight:600;font-size:0.9rem">节省 95.7%</span>
         </div>
+      </div>
 
-        <!-- Startup Time -->
-        <div class="card card--yellow">
-          <h2>启动时间</h2>
-          <div class="big-num">1.3<span class="num-unit">ms</span></div>
-          <p>vs tsserver 311 ms</p>
+      <!-- Startup Time -->
+      <div class="card card--yellow row-span-2 reveal-in" style="animation-delay:100ms">
+        <h2>启动时间</h2>
+        <div class="big-num">1.3<span class="num-unit">ms</span></div>
+        <p>vs tsserver <strong>311 ms</strong></p>
+      </div>
+
+      <!-- TS Memory -->
+      <div class="card card--pink span-3 reveal-in" style="animation-delay:150ms">
+        <h2>TypeScript 工作态</h2>
+        <div class="big-num">16.7<span class="num-unit">MB</span></div>
+        <p>vs vtsls <strong>64.9 MB</strong> / tls <strong>57.5 MB</strong></p>
+      </div>
+      
+      <!-- Performance Metrics Row -->
+      <div class="card card--blue span-2 reveal-in" style="animation-delay:200ms">
+        <h2>Hover P50</h2>
+        <div class="big-num">0.23<span class="num-unit">ms</span></div>
+        <p>vs tls 1.39 ms</p>
+      </div>
+      
+      <div class="card card--purple span-2 reveal-in" style="animation-delay:250ms">
+        <h2>Completion P50</h2>
+        <div class="big-num">11.08<span class="num-unit">ms</span></div>
+        <p>vs tls 33.94 ms</p>
+      </div>
+      
+      <!-- Full Width Info Bar -->
+      <div class="card card--mint span-6 reveal-in" style="animation-delay:300ms;flex-direction:row;align-items:center;gap:24px">
+        <div style="flex:1">
+          <h2>五大语言后端</h2>
+          <p>补全 · 悬停 · 跳转定义 · 引用查找 · 重命名 · 诊断拉取 · 大纲 · 折叠</p>
         </div>
+        <div style="flex:2;display:grid;grid-template-columns:repeat(5,1fr);gap:12px;text-align:center;font-size:0.9rem">
+          <div><span style="font-weight:700;color:#2d2a36;font-size:1.1rem">HTML</span><br>CSS/SCSS</div>
+          <div><span style="font-weight:700;color:#2d2a36;font-size:1.1rem">Sass</span><br>缩进语法</div>
+          <div><span style="font-weight:700;color:#2d2a36;font-size:1.1rem">JSON</span><br>schema 校验</div>
+          <div><span style="font-weight:700;color:#2d2a36;font-size:1.1rem">TypeScript</span><br>类型感知</div>
+          <div><span style="font-weight:700;color:#2d2a36;font-size:1.1rem">JavaScript</span><br>JSX/TSX</div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-        <!-- TS Memory -->
-        <div class="card card--pink span-2">
-          <h2>TypeScript 工作态</h2>
-          <div class="big-num">16.7<span class="num-unit">MB</span></div>
-          <p>vs vtsls <strong>64.9 MB</strong> / typescript-language-server <strong>57.5 MB</strong></p>
-          <div style="margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;font-size:0.9rem">
-            <div><span style="font-weight:600;color:#2d2a36">lspd</span><br>16.7 MB</div>
-            <div><span style="color:#8b8896">vtsls</span><br>64.9 MB</div>
-            <div><span style="color:#8b8896">tls</span><br>57.5 MB</div>
+  <!-- Detailed Benchmarks Comparison Chart -->
+  <section class="benchmarks-section">
+    <div class="container" style="max-width:1200px;padding:60px 20px">
+      <h2>与官方 LSP 深度对比</h2>
+      
+      <!-- Memory Chart -->
+      <div class="chart-container reveal-in">
+        <h3>空闲内存对比 (MB)</h3>
+        <div class="bar-chart">
+          <div class="bar-row">
+            <div class="bar-label">lspd ts</div>
+            <div class="bar-track"><div class="bar-fill highlight" data-value="6"><span class="bar-value">3.7 MB</span></div></div>
           </div>
-        </div>
-
-        <!-- Hover P50 -->
-        <div class="card card--blue">
-          <h2>Hover P50</h2>
-          <div class="big-num">0.23<span class="num-unit">ms</span></div>
-          <p>vs tls 1.39 ms / vtsls 2.19 ms</p>
-        </div>
-
-        <!-- Completion P50 -->
-        <div class="card card--purple">
-          <h2>Completion P50</h2>
-          <div class="big-num">11.08<span class="num-unit">ms</span></div>
-          <p>vs tls 33.94 ms</p>
-        </div>
-
-        <!-- Full Width Stats -->
-        <div class="card card--mint span-4" style="flex-direction:row;align-items:center;gap:20px">
-          <div style="flex:1">
-            <h2>能力矩阵</h2>
-            <p>补全 · 悬停 · 跳转定义 · 引用查找 · 重命名 · 诊断拉取 · 大纲 · 折叠 · 颜色选择</p>
+          <div class="bar-row">
+            <div class="bar-label">tsgo</div>
+            <div class="bar-track"><div class="bar-fill" data-value="16"><span class="bar-value">9.6 MB</span></div></div>
           </div>
-          <div style="flex:2;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;font-size:0.85rem">
-            <div><span style="font-weight:600;color:#2d2a36">HTML</span><br>✓ ✓ ✓ ✓ ✓ ✓</div>
-            <div><span style="font-weight:600;color:#2d2a36">CSS/SCSS</span><br>✓ ✓ ✓ ✓ ✓ ✓</div>
-            <div><span style="font-weight:600;color:#2d2a36">Sass</span><br>✓ ✓ ✓</div>
-            <div><span style="font-weight:600;color:#2d2a36">TS/JS</span><br>✓ ✓ ✓ ✓ ✓ ✓</div>
+          <div class="bar-row">
+            <div class="bar-label">typescript-lsp</div>
+            <div class="bar-track"><div class="bar-fill" data-value="88"><span class="bar-value">51.3 MB</span></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">vtsls</div>
+            <div class="bar-track"><div class="bar-fill" data-value="100"><span class="bar-value">60.2 MB</span></div></div>
           </div>
         </div>
       </div>
-    </section>
-
-    <!-- Editors Section -->
-    <section class="editors-section" style="padding:60px 20px">
-      <div class="container" style="max-width:900px">
-        <h2 style="text-align:center;margin-bottom:40px">接入所有编辑器</h2>
-        
-        <!-- Tabs -->
-        <div class="tabs" role="tablist" style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap">
-          <button class="tab-btn active" data-tab="openidea" role="tab" aria-selected="true">OpenIDEA</button>
-          <button class="tab-btn" data-tab="neovim" role="tab" aria-selected="false">Neovim</button>
-          <button class="tab-btn" data-tab="helix" role="tab" aria-selected="false">Helix</button>
-          <button class="tab-btn" data-tab="vscode" role="tab" aria-selected="false">VSCode</button>
-        </div>
-
-        <!-- Tab Content -->
-        <div id="tab-content" style="display:none">
-          <!-- Inject via JS -->
+      
+      <!-- Startup Time Chart -->
+      <div class="chart-container reveal-in" style="animation-delay:100ms">
+        <h3>启动时间对比 (ms)</h3>
+        <div class="bar-chart">
+          <div class="bar-row">
+            <div class="bar-label">lspd ts</div>
+            <div class="bar-track"><div class="bar-fill highlight" data-value="0.5"><span class="bar-value">1.3 ms</span></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">tsgo</div>
+            <div class="bar-track"><div class="bar-fill" data-value="2"><span class="bar-value">6.8 ms</span></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">typescript-lsp</div>
+            <div class="bar-track"><div class="bar-fill" data-value="62"><span class="bar-value">191 ms</span></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">vtsls</div>
+            <div class="bar-track"><div class="bar-fill" data-value="100"><span class="bar-value">311 ms</span></div></div>
+          </div>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- Footer -->
-    <footer>
-      <p>lspd · Site JS 4.1 KB · No frameworks · System fonts only</p>
-    </footer>
-  </main>
+  <!-- Editors Section with Code Cards -->
+  <section class="editors-section" style="padding:80px 20px">
+    <div class="container" style="max-width:1200px">
+      <h2>接入任意编辑器</h2>
+      
+      <!-- Editor Tabs -->
+      <div class="editor-tabs">
+        <button class="editor-tab-btn active" data-editor="openidea">OpenIDEA</button>
+        <button class="editor-tab-btn" data-editor="neovim">Neovim</button>
+        <button class="editor-tab-btn" data-editor="helix">Helix</button>
+        <button class="editor-tab-btn" data-editor="vscode">VSCode</button>
+      </div>
+      
+      <!-- Code Cards Area -->
+      <div id="code-cards-area" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(500px,1fr));gap:24px">
+        <!-- Injected by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p>lspd · Site JS 4.1 KB · No frameworks · System fonts only</p>
+  </footer>
 
   <script type="module" src="/src/main.ts"></script>
 </body>
