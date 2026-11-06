@@ -28,8 +28,8 @@ mod lifecycle {
             .stderr(Stdio::piped())
             .spawn().expect("spawn lspd failed");
 
-        let mut stdin = child.stdin.take().unwrap();
-        let mut stdout = child.stdout.unwrap();
+        let stdin = child.stdin.take().unwrap();
+        let stdout = child.stdout.unwrap();
 
         let init = serde_json::json!({
             "jsonrpc":"2.0","id":1,"method":"initialize","params":{
@@ -60,7 +60,7 @@ mod lifecycle {
         thread::sleep(Duration::from_millis(50));
 
         let mut buf = [0u8; 4096];
-        let n = stdout.read(&mut buf).unwrap();
+        let n = stdout.try_read(&mut buf).unwrap_or(0);
         assert!(n > 0, "expected shutdown response");
         
         child.kill().ok();
