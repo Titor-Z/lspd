@@ -1,40 +1,43 @@
-import './styles/main.css';
+// Bento Grid + 马卡龙配色官网逻辑
 
-// Tab 切换 + 代码块 stagger 动画
-function initTabs() {
-  const tabButtons = document.querySelectorAll('.tabs button') as NodeListOf<HTMLButtonElement>;
+document.addEventListener('DOMContentLoaded', () => {
+  // Tab switching with stagger animation
+  initTabs();
   
-  tabButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      // Reset all tabs
-      tabButtons.forEach(b => b.setAttribute('aria-selected', 'false'));
-      btn.setAttribute('aria-selected', 'true');
+  // Hover tilt effect for cards
+  initTiltEffect();
+});
+
+function initTabs() {
+  const tabs = document.querySelectorAll('.tab-btn') as NodeListOf<HTMLButtonElement>;
+  
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      // Remove active class from all tabs
+      tabs.forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
       
-      const tabId = (btn as any).dataset.tab;
+      // Add active to clicked tab
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      
+      const tabId = (tab as any).dataset.tab;
       if (!tabId) return;
       
-      // Hide all panels
-      document.querySelectorAll('[data-tab-panel]').forEach(p => p.classList.remove('visible'));
-      
-      // Show target panel with stagger
-      setTimeout(() => {
-        const panel = document.querySelector(`[data-tab-panel="${tabId}"]`);
-        if (panel) {
-          renderEditorConfig(tabId, panel);
-          panel.classList.add('visible');
-        }
-      }, 150);
+      // Show content
+      renderTabContent(tabId);
     });
-    
-    // Initialize first tab on load
-    if ((btn as any).dataset.tab === 'openidea') {
-      btn.setAttribute('aria-selected', 'true');
-    }
   });
+  
+  // Initialize first tab
+  renderTabContent('openidea');
 }
 
-// 渲染单个编辑器的配置，带 stagger
-function renderEditorConfig(key: string, panel: Element) {
+function renderTabContent(key: string) {
+  const container = document.getElementById('tab-content')!;
+  
   const configs: Record<string, string> = {
     openidea: `# Settings → Languages & Frameworks → Language Servers → +
 
@@ -98,100 +101,52 @@ language-servers = ["lspd-ts"]`,
   const code = escapeHtml(configs[key]);
   const lines = code.split('\n').filter(l => l.trim());
   
-  const copyBtnHtml = '<button class="copy-btn" data-target="#code-' + key + '">复制</button>';
-  let preHtml = '<pre><code id="code-' + key + '">';
-  
+  let html = '<pre><code>';
   lines.forEach((line, i) => {
     const delayClass = 'stagger-' + Math.min(5, Math.floor(i / 3) + 1);
-    preHtml += '<span class="' + delayClass + '">' + line + '</span>\n';
+    html += `<span class="${delayClass}">${line}</span>\n`;
   });
+  html += '</code></pre>';
   
-  preHtml += '</code></pre>';
+  container.innerHTML = html;
   
-  panel.innerHTML = '<div class="code-block">' + copyBtnHtml + preHtml + '</div>';
+  // Reveal animation
+  container.style.display = 'block';
+  container.style.opacity = '0';
+  container.style.transform = 'translateY(20px)';
   
-  // Setup copy button
-  setTimeout(() => {
-    const btn = panel.querySelector('.copy-btn') as HTMLElement;
-    if (btn) {
-      btn.addEventListener('click', async () => {
-        const targetId = (btn.dataset.target || '').replace('#', '');
-        const codeEl = document.getElementById(targetId);
-        if (!codeEl) return;
-        
-        await navigator.clipboard.writeText(codeEl.textContent || '');
-        
-        const oldText = btn.textContent;
-        btn.textContent = '✓';
-        btn.style.borderColor = '#4ade80';
-        
-        setTimeout(() => {
-          btn.textContent = oldText;
-          btn.style.borderColor = '';
-        }, 1200);
-      });
-    }
-  }, 100);
+  requestAnimationFrame(() => {
+    container.style.transition = 'opacity 0.6s ease-out, transform 0.6s cubic-bezier(0.215, 0.61, 0.355, 1)';
+    container.style.opacity = '1';
+    container.style.transform = 'translateY(0)';
+  });
 }
 
 function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// Intersection Observer - 触发动画
-function initReveals() {
-  if (!('IntersectionObserver' in window)) return;
+// 3D Tilt Effect
+function initTiltEffect() {
+  const cards = document.querySelectorAll('.card') as NodeListOf<HTMLElement>;
   
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('visible');
-      }
+  cards.forEach(card => {
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      
+      const rotateX = ((y - centerY) / centerY) * -5; // max -5 to 5 deg
+      const rotateY = ((x - centerX) / centerX) * 5;
+      
+      card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
     });
-  }, { threshold: 0.15 });
-  
-  Array.from(document.querySelectorAll('[data-reveal]')).forEach((el: Element) => {
-    observer.observe(el);
+    
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = 'perspective(800px) rotateX(0) rotateY(0)';
+    });
   });
 }
-
-// Hero 打字机
-function initHeroTypewriter() {
-  const heroCode = document.querySelector('.hero-code');
-  if (!heroCode) return;
-  
-  const text = 'lspd web';
-  let index = 0;
-  const cmdText = heroCode.querySelector('.cmd-text') as HTMLElement | null;
-  if (!cmdText) return;
-  
-  const interval = setInterval(() => {
-    cmdText.textContent += text[index];
-    index++;
-    if (index >= text.length) clearInterval(interval);
-  }, 100);
-}
-
-// Bar 动画 - 进入视口后开始生长
-function initBarAnimations() {
-  const bars = document.querySelectorAll('.bar-fill');
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const bar = entry.target as HTMLElement;
-        const value = parseFloat(bar.dataset.value || '0');
-        bar.style.width = value + '%';
-        bar.classList.add('bounce');
-      }
-    });
-  }, { threshold: 0.5 });
-  
-  bars.forEach(bar => observer.observe(bar));
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  initHeroTypewriter();
-  initTabs();
-  initReveals();
-  initBarAnimations();
-});

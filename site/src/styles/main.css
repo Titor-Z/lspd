@@ -1,5 +1,45 @@
 @import './tokens.css';
 @import './base.css';
-@import './layout.css';
 @import './components.css';
 @import './motion.css';
+
+/* Additional styles for Bento Grid */
+.stagger-1 { transition-delay: 0ms; }
+.stagger-2 { transition-delay: 40ms; opacity: 0.7; transform: translateY(10px); }
+.stagger-3 { transition-delay: 80ms; opacity: 0.5; transform: translateY(15px); }
+.stagger-4 { transition-delay: 120ms; opacity: 0.3; transform: translateY(20px); }
+.stagger-5 { transition-delay: 160ms; opacity: 0.1; transform: translateY(25px); }
+
+.tab-btn {
+  background: #fff;
+  border: 2px solid #eaeaea;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.3s;
+}
+
+.tab-btn:hover {
+  border-color: #a0d2ef;
+  color: #2d2a36;
+}
+
+.tab-btn.active {
+  background: linear-gradient(135deg, #daeefc 0%, #f0f7fe 100%);
+  border-color: #8ac1fb;
+  color: #2d2a36;
+  font-weight: 600;
+}
+
+.code-block pre {
+  margin-top: 20px;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease-out, transform 0.6s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.code-block pre.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
