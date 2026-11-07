@@ -592,7 +592,7 @@ impl ProjectCollectionBuilder {
     pub(crate) fn did_change_files(&self, summary: &FileChangeSummary, logger: &LogTree) {
         self.open_files_changed.set(
             self.open_files_changed.get()
-                || !summary.opened.0.is_empty()
+                || !summary.opened.is_empty()
                 || !summary.closed.is_empty(),
         );
 
@@ -677,15 +677,20 @@ impl ProjectCollectionBuilder {
             true
         });
 
-        // Handle opened file
-        if !summary.opened.0.is_empty() || !summary.reopened.0.is_empty() {
-            let opened =
-                if summary.opened.0.is_empty() { &summary.reopened } else { &summary.opened };
-            let file_name = opened.file_name();
-            let path = (self.to_path)(&file_name);
-            let open_file_result =
-                self.ensure_configured_project_and_ancestors_for_file(&file_name, &path, logger);
-            self.cleanup_configured_projects(Some(&open_file_result.retain), logger);
+        // Handle opened files（批量合并后可能不止一个）
+        if !summary.opened.is_empty() || !summary.reopened.0.is_empty() {
+            let opened: Vec<&lsproto::DocumentUri> = if summary.opened.is_empty() {
+                vec![&summary.reopened]
+            } else {
+                summary.opened.keys().iter().collect()
+            };
+            for uri in opened {
+                let file_name = uri.file_name();
+                let path = (self.to_path)(&file_name);
+                let open_file_result =
+                    self.ensure_configured_project_and_ancestors_for_file(&file_name, &path, logger);
+                self.cleanup_configured_projects(Some(&open_file_result.retain), logger);
+            }
         }
     }
 

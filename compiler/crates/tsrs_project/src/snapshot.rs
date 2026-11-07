@@ -569,8 +569,10 @@ impl Snapshot {
                 details
             };
             match change.reason {
-                UpdateReason::DidOpenFile => logger
-                    .logf(format_args!("Reason: DidOpenFile - {}", change.file_changes.opened.0)),
+                UpdateReason::DidOpenFile => logger.logf(format_args!(
+                    "Reason: DidOpenFile - {:?}",
+                    change.file_changes.opened.keys()
+                )),
                 UpdateReason::DidCloseFile => logger.logf(format_args!(
                     "Reason: DidCloseFile - {:?}",
                     change
@@ -809,7 +811,7 @@ impl Snapshot {
         // Clean cached files not touched by any open project on file open, close, delete,
         // or when explicitly requested (e.g. by an idle timer).
         let should_clean_file_cache = change.clean_file_cache
-            || !change.file_changes.opened.0.is_empty()
+            || !change.file_changes.opened.is_empty()
             || !change.file_changes.reopened.0.is_empty()
             || !change.file_changes.closed.is_empty()
             || !change.file_changes.deleted.is_empty();

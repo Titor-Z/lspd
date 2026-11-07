@@ -40,8 +40,9 @@ pub struct FileChange {
 
 #[derive(Clone, Debug, Default)]
 pub struct FileChangeSummary {
-    // Only one file can be opened at a time per request
-    pub opened: lsproto::DocumentUri,
+    // 打开的文件集合。FS 层保证单次变更批次内只有一个 open，
+    // 批量 didOpen 合并多批摘要后这里会有多个。
+    pub opened: Set<lsproto::DocumentUri>,
     // Reopened is set if a close and open occurred for the same file in a single batch of changes.
     pub(crate) reopened: lsproto::DocumentUri,
     pub closed: Set<lsproto::DocumentUri>,
@@ -68,7 +69,7 @@ impl FileChangeSummary {
     // filechange.go:66
     pub fn is_empty(&self) -> bool {
         !self.invalidate_all
-            && self.opened.0.is_empty()
+            && self.opened.is_empty()
             && self.reopened.0.is_empty()
             && self.closed.len() == 0
             && self.changed.len() == 0
@@ -87,23 +88,6 @@ impl FileChangeSummary {
     pub(crate) fn has_excessive_non_create_watch_events(&self) -> bool {
         self.invalidate_all || self.deleted.len() + self.changed.len() > EXCESSIVE_CHANGE_THRESHOLD
     }
-}
-
-/// 合并批量打开的变更摘要。`opened` / `reopened` 只能持有一个文件，
-/// 保留先到的那个（其余打开的文件通过 `ResourceRequest.documents` 确保加载）。
-pub(crate) fn merge_batch_summaries(
-    mut acc: FileChangeSummary,
-    next: FileChangeSummary,
-) -> FileChangeSummary {
-    merge_file_change_summary(&mut acc, &next);
-    if acc.opened.0.is_empty() {
-        acc.opened = next.opened;
-    }
-    if acc.reopened.0.is_empty() {
-        acc.reopened = next.reopened;
-    }
-    acc.closed.union(&next.closed);
-    acc
 }
 
 // filechange.go:79

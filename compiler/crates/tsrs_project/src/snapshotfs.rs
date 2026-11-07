@@ -865,9 +865,12 @@ impl SnapshotFSBuilder {
         previous_open_files: &FxHashMap<Path, Arc<dyn FileHandle>>,
         open_files: &FxHashMap<Path, Arc<dyn FileHandle>>,
     ) -> FileChangeSummary {
-        if !change.opened.0.is_empty() && !tspath::is_dynamic_file_name(&change.opened.file_name())
-        {
-            let path = (self.to_path)(&change.opened.file_name());
+        let opened: Vec<lsproto::DocumentUri> = change.opened.keys().iter().cloned().collect();
+        for opened_uri in opened {
+            if tspath::is_dynamic_file_name(&opened_uri.file_name()) {
+                continue;
+            }
+            let path = (self.to_path)(&opened_uri.file_name());
             let entry = self.cache_files.load(&path);
             match &entry {
                 Some(entry) if entry.original().is_some() => {
@@ -879,13 +882,13 @@ impl SnapshotFSBuilder {
                         if let Some(cached_file) = entry.original()
                             && open_file.hash() != cached_file.base.hash
                         {
-                            change.changed.add(change.opened.clone());
+                            change.changed.add(opened_uri.clone());
                         }
                         self.delete_cache_entry(entry);
                     }
                 }
                 _ => {
-                    change.created.add(change.opened.clone());
+                    change.created.add(opened_uri.clone());
                 }
             }
         }

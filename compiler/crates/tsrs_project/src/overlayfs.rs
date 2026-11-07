@@ -727,15 +727,13 @@ impl OverlayFS {
             let mut o = new_overlays.get(&path).cloned();
 
             if let Some(open_change) = &events.open_change {
-                assert!(
-                    !(!result.opened.0.is_empty() || !result.reopened.0.is_empty()),
-                    "can only process one file open event at a time"
-                );
                 match &o {
                     Some(existing) if existing.content() != open_change.content => {
                         result.changed.add(uri.clone());
                     }
-                    None => result.opened = uri.clone(),
+                    None => {
+                        result.opened.add(uri.clone());
+                    }
                     Some(_) => result.reopened = uri.clone(),
                 }
                 let mut script_kind =

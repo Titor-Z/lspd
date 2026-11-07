@@ -23,9 +23,7 @@ use crate::checkerpool::CheckerPoolOptions;
 use crate::client::Client;
 use crate::configfileregistry::ConfigFileEntry;
 use crate::dirty::Shared;
-use crate::filechange::{
-    FileChange, FileChangeKind, FileChangeSummary, merge_batch_summaries, merge_file_change_summary,
-};
+use crate::filechange::{FileChange, FileChangeKind, FileChangeSummary, merge_file_change_summary};
 use crate::logging::{Logger, new_nop_logger};
 use crate::overlayfs::{FsRef, OverlayFS, OverlayMap, ToPath, new_overlay_fs};
 use crate::parsecache::{ContentMappedParseCache, ParseCache};
@@ -209,9 +207,6 @@ pub struct Session {
     // 重建快照时据此确保这些文档对应的项目（含推断项目）已加载 program。
     pending_resource_documents: Mutex<Vec<lsproto::DocumentUri>>,
 
-    // pending_batch 是批量模式下的合并结果。overlay 已逐个写入 FS，
-    // 这里只暂存变更摘要，窗口结束时一次性交给 update_snapshot，从而只重建一次 program。
-    pending_batch: Mutex<Option<FileChangeSummary>>,
 
     // pendingATAChanges are produced by Automatic Type Acquisition (ATA)
     // installations and applied to the next snapshot update.
@@ -325,7 +320,6 @@ pub fn new_session(init: &SessionInit) -> Arc<Session> {
         configure_mu: Mutex::new(()),
         pending_file_changes: Mutex::new(Vec::new()),
         pending_resource_documents: Mutex::new(Vec::new()),
-        pending_batch: Mutex::new(None),
         diagnostics_refresh: Mutex::new(CancelState::default()),
         warm_auto_import_cancel: Mutex::new(None),
         idle_cache_clean: Mutex::new(IdleCacheCleanState::default()),
@@ -439,19 +433,12 @@ impl Session {
             language_kind,
             changes: Vec::new(),
         });
-        // 批量模式：overlay 仍逐个写入 FS（FS 层要求一次只能处理一个 open），
-        // 但变更摘要累积起来，由防抖窗口末尾统一重建一次 program。
+        // 批量模式：变更留在 pending 里，由防抖窗口末尾一次性提交，
+        // 窗口内连续打开的多个文件只触发一次 program 重建。
         if let Some(delay) = self.options.batch_did_open {
-            let (changes, _overlays) = self.flush_changes_locked(ctx, &mut pending);
+            self.pending_resource_documents.lock().unwrap().push(uri);
             drop(pending);
             drop(_update);
-            let mut slot = self.pending_batch.lock().unwrap();
-            *slot = Some(match slot.take() {
-                Some(acc) => merge_batch_summaries(acc, changes),
-                None => changes,
-            });
-            drop(slot);
-            self.pending_resource_documents.lock().unwrap().push(uri);
             self.schedule_snapshot_update_after(UpdateReason::DidOpenFile, delay);
             return;
         }
@@ -1968,11 +1955,7 @@ impl Session {
         let mut pending = self.pending_file_changes.lock().unwrap();
         let mut pending_ata = self.pending_ata_changes.lock().unwrap();
         let pending_ata_changes = std::mem::take(&mut *pending_ata);
-        let (mut file_changes, overlays) = self.flush_changes_locked(ctx, &mut pending);
-        // 批量模式累积的摘要在这里并回，窗口内的多次 didOpen 只产生一次快照更新。
-        if let Some(batch) = self.pending_batch.lock().unwrap().take() {
-            file_changes = merge_batch_summaries(batch, file_changes);
-        }
+        let (file_changes, overlays) = self.flush_changes_locked(ctx, &mut pending);
         let mut user_config = self.user_config.lock().unwrap();
         let mut new_prefs = None;
         if user_config.pending_user_config_changes {
