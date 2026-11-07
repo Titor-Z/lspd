@@ -121,3 +121,16 @@ jobs:
 
             下载后赋予执行权限即可运行（Windows 直接运行）。同名 `.sha256` 为校验和。
             编辑器按 languageId 分别启动对应子命令。
+
+  # 发布完成后重建官网，页脚版本号取本次 tag；GITHUB_TOKEN 的推送不会触发其他工作流，
+  # 所以这里直接调用官网工作流，而不是让它在 main 上被动触发
+  site:
+    name: 部署官网
+    needs: release
+    uses: ./.github/workflows/site.yml
+    with:
+      version: ${{ github.ref_name }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write

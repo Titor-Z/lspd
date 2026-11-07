@@ -1,6 +1,7 @@
 name: Site
 
-# 只在 site/ 发生变化时构建并发布官网
+# 只在 site/ 发生变化时构建并发布官网；发布工作流也会调用本工作流，
+# 把页脚版本号写成当次 tag 的版本
 on:
   push:
     branches: [main]
@@ -8,6 +9,16 @@ on:
       - "site/**"
       - ".github/workflows/site.yml"
   workflow_dispatch:
+    inputs:
+      version:
+        description: 覆盖页脚版本号（不填则取最新 Release）
+        required: false
+  workflow_call:
+    inputs:
+      version:
+        description: 本次发布版本号，如 v0.2.0
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -36,6 +47,8 @@ jobs:
 
       - name: 构建
         working-directory: site
+        env:
+          SITE_VERSION: ${{ inputs.version }}
         run: bun run build
 
       - uses: actions/configure-pages@v5

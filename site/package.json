@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && node scripts/size-report.js",
+    "build": "tsc && vite build && node scripts/version.js && node scripts/size-report.js",
     "preview": "vite preview"
   },
   "devDependencies": {
