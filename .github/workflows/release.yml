@@ -1,7 +1,7 @@
 name: Release
 
 # 推送 v 开头的标签即构建并发布，例如：
-#   git tag v0.1.0 && git push origin v0.1.0
+#   git tag v0.2.0 && git push origin v0.2.0
 on:
   push:
     tags:
@@ -26,18 +26,23 @@ jobs:
           - label: macos-x86_64
             os: macos-latest
             target: x86_64-apple-darwin
+          - label: windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
       # 工具链由仓库根目录的 rust-toolchain.toml 指定（1.99.1），rustup 会自动安装
       - name: 显示工具链
+        shell: bash
         run: |
           rustup show active-toolchain || true
           rustc --version
 
       # 交叉编译到 x86_64-apple-darwin 时，arm64 runner 上默认没有该 target
       - name: 确保目标已安装
+        shell: bash
         run: rustup target add ${{ matrix.target }}
 
       # 编译缓存：首次仍会全量编译，之后命中可显著缩短
@@ -48,18 +53,21 @@ jobs:
       # 项目只允许 Rust：此处不安装任何 C 工具链（cmake/cc），
       # 若依赖树里混入需要 C 编译的 crate，这一步就会失败，属于预期行为。
       - name: 构建
+        shell: bash
         run: cargo build --release --locked -p lspd --target ${{ matrix.target }}
 
-      - name: 打包
+      # 产物直接是裸可执行文件，不压缩；文件名带平台后缀便于静态链接
+      # 到 latest/download/lspd-<target>，官网安装命令因此不必随版本号改动
+      - name: 归集产物
+        shell: bash
         run: |
           mkdir -p dist
-          cp "target/${{ matrix.target }}/release/lspd" dist/
-          cd dist
-          ARCHIVE="lspd-${GITHUB_REF_NAME}-${{ matrix.target }}.tar.gz"
-          tar -czf "$ARCHIVE" lspd
-          # 只记录文件名本身，避免下载后因路径前缀导致 shasum -c 失败
-          shasum -a 256 "$ARCHIVE" > "$ARCHIVE.sha256"
-          cat "$ARCHIVE.sha256"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp "target/${{ matrix.target }}/release/lspd.exe" "dist/lspd-${{ matrix.target }}.exe"
+          else
+            cp "target/${{ matrix.target }}/release/lspd" "dist/lspd-${{ matrix.target }}"
+          fi
+          ls -l dist
 
       - uses: actions/upload-artifact@v4
         with:
@@ -75,11 +83,19 @@ jobs:
         with:
           path: artifacts
 
-      - name: 归集产物
+      # 校验和在发布侧统一计算，避免各平台工具差异
+      - name: 归集产物并计算校验和
         run: |
           mkdir -p release
-          find artifacts -type f \( -name "*.tar.gz" -o -name "*.sha256" \) -exec cp {} release/ \;
-          ls -l release
+          find artifacts -type f -exec cp {} release/ \;
+          cd release
+          for f in *; do
+            case "$f" in
+              *.sha256) continue ;;
+            esac
+            sha256sum "$f" > "$f.sha256"
+          done
+          ls -l
 
       - uses: softprops/action-gh-release@v2
         with:
@@ -94,4 +110,14 @@ jobs:
             lspd ts    # TypeScript / JavaScript
             ```
 
-            解压后直接运行；编辑器按 languageId 分别启动对应子命令。
+            Release 里的文件就是编译好的可执行文件本身，不打包、不解压：
+
+            | 平台 | 文件 |
+            |---|---|
+            | Linux x86_64 | `lspd-x86_64-unknown-linux-gnu` |
+            | macOS Apple Silicon | `lspd-aarch64-apple-darwin` |
+            | macOS Intel | `lspd-x86_64-apple-darwin` |
+            | Windows x64 | `lspd-x86_64-pc-windows-msvc.exe` |
+
+            下载后赋予执行权限即可运行（Windows 直接运行）。同名 `.sha256` 为校验和。
+            编辑器按 languageId 分别启动对应子命令。

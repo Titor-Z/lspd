@@ -356,13 +356,27 @@ augroup END</code></pre>
       <header class="sec-head sec-head-dark">
         <span class="sec-num sec-num-light">04</span>
         <h2>安装</h2>
-        <p class="sec-sub">从 Releases 下载对应平台的压缩包，解压后是单个可执行文件。</p>
+        <p class="sec-sub">从 Releases 直接下载对应平台的可执行文件，不打包、不解压。链接固定指向最新版，换版本无需改命令。</p>
       </header>
 
-<pre class="install"><code>tar -xzf lspd-v0.1.1-x86_64-apple-darwin.tar.gz
-shasum -a 256 -c lspd-v0.1.1-x86_64-apple-darwin.tar.gz.sha256
-sudo mv lspd /usr/local/bin/
+<pre class="install"><code># macOS：Intel 用 x86_64-apple-darwin，Apple Silicon 用 aarch64-apple-darwin
+curl -fLO https://github.com/Titor-Z/lspd/releases/latest/download/lspd-x86_64-apple-darwin
+curl -fLO https://github.com/Titor-Z/lspd/releases/latest/download/lspd-x86_64-apple-darwin.sha256
+shasum -a 256 -c lspd-x86_64-apple-darwin.sha256
+chmod +x lspd-x86_64-apple-darwin
+sudo mv lspd-x86_64-apple-darwin /usr/local/bin/lspd
 lspd --version</code></pre>
+
+<pre class="install"><code># Linux x86_64
+curl -fLO https://github.com/Titor-Z/lspd/releases/latest/download/lspd-x86_64-unknown-linux-gnu
+curl -fLO https://github.com/Titor-Z/lspd/releases/latest/download/lspd-x86_64-unknown-linux-gnu.sha256
+sha256sum -c lspd-x86_64-unknown-linux-gnu.sha256
+chmod +x lspd-x86_64-unknown-linux-gnu
+sudo mv lspd-x86_64-unknown-linux-gnu /usr/local/bin/lspd</code></pre>
+
+<pre class="install"><code># Windows x64（PowerShell）
+curl.exe -fLO https://github.com/Titor-Z/lspd/releases/latest/download/lspd-x86_64-pc-windows-msvc.exe
+Get-FileHash .\lspd-x86_64-pc-windows-msvc.exe -Algorithm SHA256</code></pre>
 
       <p class="note note-dark">编辑器从图形界面启动时拿不到终端的 <code>$PATH</code>，配置里一律填绝对路径。</p>
     </div>
@@ -372,7 +386,7 @@ lspd --version</code></pre>
 
 <footer class="site-footer">
   <div class="wrap footer-in">
-    <span class="footer-mark">lspd <span data-version>0.1.1</span></span>
+    <span class="footer-mark">lspd <span data-version>0.2.0</span></span>
     <span class="footer-meta" data-size>本站 JS — · CSS — · 无框架 · 无网络字体</span>
   </div>
 </footer>

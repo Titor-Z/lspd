@@ -6,7 +6,7 @@ members = ["crates/*"]
 exclude = ["compiler"]
 
 [workspace.package]
-version = "0.1.1"
+version = "0.2.0"
 edition = "2024"
 # 与 compiler/（源自 tsrs，rust-version = 1.99）保持一致，桥接后无需两套工具链。
 rust-version = "1.99"

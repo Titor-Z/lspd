@@ -218,7 +218,7 @@ checksum = "47d9d19d1d6efa0109d2f65ff4c85cddd50bd572e5a00127ab10987290bcefae"
 
 [[package]]
 name = "lspd"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "lspd-core",
  "lspd-css",
@@ -230,7 +230,7 @@ dependencies = [
 
 [[package]]
 name = "lspd-core"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "rustc-hash",
  "serde",
@@ -239,7 +239,7 @@ dependencies = [
 
 [[package]]
 name = "lspd-css"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "lspd-core",
  "serde",
@@ -248,7 +248,7 @@ dependencies = [
 
 [[package]]
 name = "lspd-html"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "lspd-core",
  "serde",
@@ -257,7 +257,7 @@ dependencies = [
 
 [[package]]
 name = "lspd-json"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "lspd-core",
  "regex-lite",
@@ -267,7 +267,7 @@ dependencies = [
 
 [[package]]
 name = "lspd-sass"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "lspd-core",
  "lspd-css",
@@ -275,7 +275,7 @@ dependencies = [
 
 [[package]]
 name = "lspd-tsbridge"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "tsrs_core",
  "tsrs_lsp",

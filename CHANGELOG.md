@@ -1,5 +1,41 @@
 # Changelog
 
+v0.2.0 (2026-11-08)
+
+## 概述
+
+TypeScript 侧的内存优化版本：打开文件不再逐个重建 program，改为在防抖窗口内合并，
+连续打开一批文件只重建一次。发布产物同步补齐 Windows 平台，并改为直接提供可执行文件。
+
+## 新增
+
+### TypeScript：批量合并 didOpen
+
+一次打开多个文件时，此前每收到一个 `didOpen` 就重建一次 program，内存平台随之抬高。
+现在 `didOpen` 并入 300ms 防抖窗口，窗口内提交的文件只触发一次重建。
+
+- `LSPD_TS_BATCH_DIDOPEN=0` 关闭批量合并，回到逐次重建
+- `LSPD_TS_BATCH_DELAY_MS` 调整窗口长度（默认 300）
+
+实测（40 个 `.js`，间隔 100ms）：默认开启时 program 创建 1 次，关闭时 40 次。
+
+### 发布产物
+
+- 增加 Windows x64（`x86_64-pc-windows-msvc`）。
+- Release 直接提供编译好的可执行文件，不再打 tar.gz，也不含解压步骤；
+  同名 `.sha256` 为校验和。
+- 产物文件名不带版本号，下载地址可固定为 `releases/latest/download/<平台>`，
+  官网安装命令因此不随版本号变化。
+
+### 测量工具
+
+`scripts/region_stats.py` 统计 program region 的创建与释放计数；`scripts/bench.py`
+支持逐文件阶梯采样，用于定位内存平台出现的位置。
+
+## 修正
+
+- 官网安装命令与页脚版本号随本次发布同步。
+
 v0.1.1 (2026-11-07)
 
 ## 概述

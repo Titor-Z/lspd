@@ -11,18 +11,21 @@ lspd ts    # TypeScript / JavaScript
 
 ## 安装
 
-从 [Releases](https://github.com/Titor-Z/lspd/releases) 下载对应平台的压缩包，解压后得到单个 `lspd` 可执行文件。
+从 [Releases](https://github.com/Titor-Z/lspd/releases) 直接下载对应平台的可执行文件，无需解压。
 
 | 平台 | 文件名 |
 |---|---|
-| macOS Apple Silicon | `lspd-vX.Y.Z-aarch64-apple-darwin.tar.gz` |
-| macOS Intel | `lspd-vX.Y.Z-x86_64-apple-darwin.tar.gz` |
-| Linux x86_64 | `lspd-vX.Y.Z-x86_64-unknown-linux-gnu.tar.gz` |
+| Windows x64 | `lspd-x86_64-pc-windows-msvc.exe` |
+| macOS Apple Silicon | `lspd-aarch64-apple-darwin` |
+| macOS Intel | `lspd-x86_64-apple-darwin` |
+| Linux x86_64 | `lspd-x86_64-unknown-linux-gnu` |
 
 ```bash
-tar -xzf lspd-v0.1.0-x86_64-apple-darwin.tar.gz
-shasum -a 256 -c lspd-v0.1.0-x86_64-apple-darwin.tar.gz.sha256
-sudo mv lspd /usr/local/bin/
+curl -fLO https://github.com/Titor-Z/lspd/releases/latest/download/lspd-x86_64-apple-darwin
+curl -fLO https://github.com/Titor-Z/lspd/releases/latest/download/lspd-x86_64-apple-darwin.sha256
+shasum -a 256 -c lspd-x86_64-apple-darwin.sha256
+chmod +x lspd-x86_64-apple-darwin
+sudo mv lspd-x86_64-apple-darwin /usr/local/bin/lspd
 lspd --version
 ```
 
