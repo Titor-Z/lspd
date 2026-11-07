@@ -23,7 +23,9 @@ use crate::checkerpool::CheckerPoolOptions;
 use crate::client::Client;
 use crate::configfileregistry::ConfigFileEntry;
 use crate::dirty::Shared;
-use crate::filechange::{FileChange, FileChangeKind, FileChangeSummary, merge_file_change_summary};
+use crate::filechange::{
+    FileChange, FileChangeKind, FileChangeSummary, merge_batch_summaries, merge_file_change_summary,
+};
 use crate::logging::{Logger, new_nop_logger};
 use crate::overlayfs::{FsRef, OverlayFS, OverlayMap, ToPath, new_overlay_fs};
 use crate::parsecache::{ContentMappedParseCache, ParseCache};
@@ -94,6 +96,9 @@ pub struct SessionOptions {
     pub run_external_code: bool,
     pub debounce_delay: Duration,
     pub checker_pool_options: CheckerPoolOptions,
+    // batch_did_open 为 Some 时，didOpen 不再当场重建快照，而是并入防抖窗口，
+    // 窗口内累积的所有根文件变更只触发一次 program 重建。None 表示逐次同步重建。
+    pub batch_did_open: Option<Duration>,
 }
 
 // (ATA is not ported: an `NpmExecutor` never starts a typings installer.)
@@ -199,6 +204,14 @@ pub struct Session {
     // by the LSP server through DidOpenFile(), DidChangeFile(), etc. They are
     // applied to the next snapshot update.
     pub pending_file_changes: Mutex<Vec<FileChange>>,
+
+    // pending_resource_documents 记录批量模式下随文件变更一起合并的文档 URI。
+    // 重建快照时据此确保这些文档对应的项目（含推断项目）已加载 program。
+    pending_resource_documents: Mutex<Vec<lsproto::DocumentUri>>,
+
+    // pending_batch 是批量模式下的合并结果。overlay 已逐个写入 FS，
+    // 这里只暂存变更摘要，窗口结束时一次性交给 update_snapshot，从而只重建一次 program。
+    pending_batch: Mutex<Option<FileChangeSummary>>,
 
     // pendingATAChanges are produced by Automatic Type Acquisition (ATA)
     // installations and applied to the next snapshot update.
@@ -311,6 +324,8 @@ pub fn new_session(init: &SessionInit) -> Arc<Session> {
         scheduled_snapshot_update: Mutex::new(CancelState::default()),
         configure_mu: Mutex::new(()),
         pending_file_changes: Mutex::new(Vec::new()),
+        pending_resource_documents: Mutex::new(Vec::new()),
+        pending_batch: Mutex::new(None),
         diagnostics_refresh: Mutex::new(CancelState::default()),
         warm_auto_import_cancel: Mutex::new(None),
         idle_cache_clean: Mutex::new(IdleCacheCleanState::default()),
@@ -424,6 +439,22 @@ impl Session {
             language_kind,
             changes: Vec::new(),
         });
+        // 批量模式：overlay 仍逐个写入 FS（FS 层要求一次只能处理一个 open），
+        // 但变更摘要累积起来，由防抖窗口末尾统一重建一次 program。
+        if let Some(delay) = self.options.batch_did_open {
+            let (changes, _overlays) = self.flush_changes_locked(ctx, &mut pending);
+            drop(pending);
+            drop(_update);
+            let mut slot = self.pending_batch.lock().unwrap();
+            *slot = Some(match slot.take() {
+                Some(acc) => merge_batch_summaries(acc, changes),
+                None => changes,
+            });
+            drop(slot);
+            self.pending_resource_documents.lock().unwrap().push(uri);
+            self.schedule_snapshot_update_after(UpdateReason::DidOpenFile, delay);
+            return;
+        }
         let (changes, overlays) = self.flush_changes_locked(ctx, &mut pending);
         drop(pending);
         self.update_snapshot(
@@ -708,6 +739,12 @@ impl Session {
 
     // session.go:577
     fn schedule_snapshot_update(&self, reason: UpdateReason) {
+        self.schedule_snapshot_update_after(reason, self.options.debounce_delay);
+    }
+
+    // schedule_snapshot_update_after 在 delay 之后执行一次合并的快照更新。
+    // 批量 didOpen 也走这里，与 didClose 共用同一条防抖链。
+    fn schedule_snapshot_update_after(&self, reason: UpdateReason, delay: Duration) {
         let mut st = self.scheduled_snapshot_update.lock().unwrap();
 
         // Cancel any existing scheduled snapshot update
@@ -731,7 +768,7 @@ impl Session {
         self.background_queue.enqueue(&debounce_ctx, move |ctx| {
             let _cancel = CancelOnDrop(cancel);
             // Sleep for the debounce delay
-            if ctx.wait_timeout(s.options.debounce_delay) {
+            if ctx.wait_timeout(delay) {
                 // Context was cancelled, newer events arrived or another snapshot update ran
                 return;
             }
@@ -752,6 +789,7 @@ impl Session {
             let _update = s.snapshot_update_mu.lock().unwrap();
 
             let (file_changes, overlays, ata_changes, new_config) = s.flush_changes(ctx);
+            let documents = std::mem::take(&mut *s.pending_resource_documents.lock().unwrap());
             if file_changes.is_empty() && ata_changes.is_empty() && new_config.is_none() {
                 return;
             }
@@ -764,6 +802,7 @@ impl Session {
                     file_changes,
                     new_config,
                     ata_changes,
+                    resource_request: ResourceRequest { documents, ..Default::default() },
                     ..Default::default()
                 },
             );
@@ -919,6 +958,8 @@ impl Session {
         self.cancel_scheduled_snapshot_update();
 
         let (file_changes, overlays, ata_changes, new_config) = self.flush_changes(ctx);
+        // 请求本身就是强制刷新出口，它带了明确的文档，批量积攒的 URI 到此作废。
+        self.pending_resource_documents.lock().unwrap().clear();
         let update_snapshot =
             !file_changes.is_empty() || !ata_changes.is_empty() || new_config.is_some();
         if update_snapshot {
@@ -1927,7 +1968,11 @@ impl Session {
         let mut pending = self.pending_file_changes.lock().unwrap();
         let mut pending_ata = self.pending_ata_changes.lock().unwrap();
         let pending_ata_changes = std::mem::take(&mut *pending_ata);
-        let (file_changes, overlays) = self.flush_changes_locked(ctx, &mut pending);
+        let (mut file_changes, overlays) = self.flush_changes_locked(ctx, &mut pending);
+        // 批量模式累积的摘要在这里并回，窗口内的多次 didOpen 只产生一次快照更新。
+        if let Some(batch) = self.pending_batch.lock().unwrap().take() {
+            file_changes = merge_batch_summaries(batch, file_changes);
+        }
         let mut user_config = self.user_config.lock().unwrap();
         let mut new_prefs = None;
         if user_config.pending_user_config_changes {

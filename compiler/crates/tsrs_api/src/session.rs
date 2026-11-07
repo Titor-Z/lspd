@@ -147,6 +147,7 @@ impl Session {
                 run_external_code: options.run_external_code,
                 debounce_delay: std::time::Duration::ZERO,
                 checker_pool_options: tsrs_project::CheckerPoolOptions::default(),
+                batch_did_open: None,
             }),
             fs: options.fs,
             client: None,

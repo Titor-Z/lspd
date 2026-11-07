@@ -115,6 +115,22 @@ pub fn new_server(opts: ServerOptions) -> Arc<Server> {
 }
 
 // server.go:90
+// batch_did_open_window 读环境变量决定批量合并窗口。
+// LSPD_TS_BATCH_DIDOPEN=1 开启，延迟默认 300ms，可用 LSPD_TS_BATCH_DELAY_MS 调整。
+fn batch_did_open_window() -> Option<Duration> {
+    let enabled = std::env::var("LSPD_TS_BATCH_DIDOPEN").is_ok_and(|v| {
+        matches!(v.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on")
+    });
+    if !enabled {
+        return None;
+    }
+    let ms = std::env::var("LSPD_TS_BATCH_DELAY_MS")
+        .ok()
+        .and_then(|v| v.trim().parse::<u64>().ok())
+        .unwrap_or(300);
+    Some(Duration::from_millis(ms))
+}
+
 fn file_rename_filters() -> Vec<lsproto::FileOperationFilter> {
     vec![lsproto::FileOperationFilter {
         scheme: Some("file".to_string()),
@@ -2089,6 +2105,9 @@ impl Server {
                 logging_enabled: true,
                 telemetry_enabled: enable_telemetry,
                 debounce_delay: Duration::from_millis(500),
+                // LSPD_TS_BATCH_DIDOPEN=1 时启用批量合并：didOpen 不再当场重建快照，
+                // 而是并入防抖窗口，窗口内多次打开只重建一次 program。默认关。
+                batch_did_open: batch_did_open_window(),
                 push_diagnostics_enabled: !disable_push_diagnostics,
                 run_external_code,
                 ..Default::default()

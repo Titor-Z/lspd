@@ -89,6 +89,23 @@ impl FileChangeSummary {
     }
 }
 
+/// 合并批量打开的变更摘要。`opened` / `reopened` 只能持有一个文件，
+/// 保留先到的那个（其余打开的文件通过 `ResourceRequest.documents` 确保加载）。
+pub(crate) fn merge_batch_summaries(
+    mut acc: FileChangeSummary,
+    next: FileChangeSummary,
+) -> FileChangeSummary {
+    merge_file_change_summary(&mut acc, &next);
+    if acc.opened.0.is_empty() {
+        acc.opened = next.opened;
+    }
+    if acc.reopened.0.is_empty() {
+        acc.reopened = next.reopened;
+    }
+    acc.closed.union(&next.closed);
+    acc
+}
+
 // filechange.go:79
 // mergeFileChangeSummary merges src into dst, combining their change sets.
 pub(crate) fn merge_file_change_summary(dst: &mut FileChangeSummary, src: &FileChangeSummary) {
