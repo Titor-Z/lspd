@@ -21,7 +21,7 @@
 4. `Cargo.toml`：`members` 去掉 `tasks/*`（对应目录已删）。
 5. `rust-toolchain.toml`：`components = ["clippy", "rustfmt"]` 改为 `profile = "default"`，
    避免 rustup 重复安装 `cargo-fmt` 而失败。
-6. 新增可选的批量打开合并（默认关闭，`LSPD_TS_BATCH_DIDOPEN=1` 开启）：
+6. 批量打开合并（默认开启，`LSPD_TS_BATCH_DIDOPEN=0` 关闭）：
    `tsrs_project/src/session.rs` 中 `did_open_file` 在批量模式下把变更摘要累积到
    `pending_batch`，由防抖窗口结束时统一触发一次快照更新，避免连续打开多个文件时
    逐个全量重建 program；`tsrs_lsp/src/server.rs` 新增 `batch_did_open_window()` 读环境变量。
