@@ -224,6 +224,7 @@ dependencies = [
  "lspd-css",
  "lspd-html",
  "lspd-json",
+ "lspd-md",
  "lspd-sass",
  "lspd-tsbridge",
 ]
@@ -261,6 +262,15 @@ version = "0.2.0"
 dependencies = [
  "lspd-core",
  "regex-lite",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "lspd-md"
+version = "0.2.0"
+dependencies = [
+ "lspd-core",
  "serde",
  "serde_json",
 ]

@@ -23,6 +23,7 @@ lspd — 低内存多语言语言服务器（LSP over stdio）
   css          CSS / SCSS / Less
   sass         Sass（缩进语法）
   json         JSON
+  md           Markdown
 
 选项
   --stdio      使用标准输入输出，LSP 通用传输方式（默认，可省略）
@@ -32,6 +33,7 @@ lspd — 低内存多语言语言服务器（LSP over stdio）
 示例
   lspd ts
   lspd web
+  lspd md
 ";
 
 /// 语言子命令。取值与构建侧 feature 一一对应，决定本次进程装载哪些后端。
@@ -49,6 +51,8 @@ enum Subcommand {
     Sass,
     /// JSON
     Json,
+    /// Markdown
+    Md,
 }
 
 impl Subcommand {
@@ -61,6 +65,7 @@ impl Subcommand {
             "css" => Some(Self::Css),
             "sass" => Some(Self::Sass),
             "json" => Some(Self::Json),
+            "md" => Some(Self::Md),
             _ => None,
         }
     }
@@ -74,6 +79,7 @@ impl Subcommand {
             Self::Css => &["css"],
             Self::Sass => &["sass"],
             Self::Json => &["json"],
+            Self::Md => &["md"],
         }
     }
 }
@@ -127,6 +133,7 @@ fn built_features() -> Vec<&'static str> {
         cfg!(feature = "css").then_some("css"),
         cfg!(feature = "sass").then_some("sass"),
         cfg!(feature = "json").then_some("json"),
+        cfg!(feature = "md").then_some("md"),
     ]
     .into_iter()
     .flatten()
@@ -151,6 +158,9 @@ fn backends() -> Vec<Box<dyn Backend>> {
 
     #[cfg(feature = "json")]
     list.push(lspd_json::backend());
+
+    #[cfg(feature = "md")]
+    list.push(lspd_md::backend());
 
     list.shrink_to_fit();
     list

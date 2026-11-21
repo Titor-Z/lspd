@@ -62,6 +62,7 @@ TypeScript 侧移植自 [oxc-project/tsrs](https://github.com/oxc-project/tsrs)�
   css          CSS / SCSS / Less
   sass         Sass（缩进语法）
   json         JSON
+  md           Markdown
 
 选项
   --stdio      使用标准输入输出，LSP 通用传输方式（默认，可省略）
@@ -102,6 +103,7 @@ Web 后端只跟随已打开文档，两者生命周期完全不同，放在一�
 | `less` | `.less` | `lspd web` |
 | `sass` | `.sass` | `lspd web` |
 | `json` / `jsonc` | `.json` `.jsonc` | `lspd web` |
+| `markdown` | `.md` `.markdown` | `lspd md` |
 | `typescript` | `.ts` | `lspd ts` |
 | `typescriptreact` | `.tsx` | `lspd ts` |
 | `javascript` | `.js` `.mjs` `.cjs` | `lspd ts` |

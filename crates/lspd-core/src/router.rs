@@ -136,10 +136,16 @@ impl Server {
         }
     }
 
-    /// 处理 initialize：记录工作区根，回告能力。
+    /// 处理 initialize：记录工作区根，通知后端工作区已就绪，回告能力。
     fn on_initialize(&mut self, id: Id, params: Option<&RawValue>, out: &mut Vec<Outgoing>) {
         self.root_uri = parse_params::<InitializeParams>(params).and_then(|params| params.root());
         self.lifecycle = Lifecycle::Running;
+
+        if let Some(root) = self.root_uri.as_deref() {
+            for backend in &mut self.backends {
+                backend.did_initialize(root, out);
+            }
+        }
 
         let result = json!({
             "capabilities": self.capabilities(),

@@ -58,4 +58,10 @@ pub trait Backend {
 
     /// 服务端即将退出，后端可在此做收尾。
     fn shutdown(&mut self) {}
+
+    /// initialize 完成且已拿到工作区根。后端在此建立工作区级索引；
+    /// 默认实现为空，只有需要跨文件信息的后端才覆盖。
+    fn did_initialize(&mut self, root_uri: &str, out: &mut Vec<Outgoing>) {
+        let _ = (root_uri, out);
+    }
 }
