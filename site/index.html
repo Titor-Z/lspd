@@ -279,7 +279,8 @@ Languages  Markdown</code></pre>
         "languages": {
           ".html": "html", ".css": "css", ".scss": "scss",
           ".less": "less", ".sass": "sass", ".json": "json",
-          ".jsonc": "jsonc", ".toml": "toml", ".xml": "xml", ".svg": "svg"
+          ".jsonc": "jsonc", ".yaml": "yaml", ".yml": "yaml",
+          ".dockerfile": "dockerfile", ".toml": "toml", ".xml": "xml", ".svg": "svg"
         }
       },
       "lspd-md": {
@@ -298,7 +299,7 @@ Languages  Markdown</code></pre>
 
 local servers = {
   { name = "lspd-web", cmd = { lspd, "web" },
-    filetypes = { "html", "css", "scss", "less", "sass", "json", "jsonc", "toml", "xml", "svg" } },
+    filetypes = { "html", "css", "scss", "less", "sass", "json", "jsonc", "yaml", "dockerfile", "toml", "xml", "svg" } },
   { name = "lspd-md", cmd = { lspd, "md" }, filetypes = { "markdown" } },
   { name = "lspd-ts", cmd = { lspd, "ts" },
     filetypes = { "typescript", "typescriptreact",
@@ -452,6 +453,13 @@ Get-FileHash .\lspd-x86_64-pc-windows-msvc.exe -Algorithm SHA256</code></pre>
   <div class="wrap footer-in">
     <span class="footer-mark">lspd <span data-version>0.4.0</span></span>
     <span class="footer-meta" data-size>本站 JS — · CSS — · 无框架 · 无网络字体</span>
+  </div>
+</footer>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
+络字体</span>
   </div>
 </footer>
 
