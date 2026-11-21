@@ -15,12 +15,17 @@ pub struct Span {
 impl Span {
     /// 构造区间。
     pub fn new(start: usize, end: usize) -> Self {
-        Self { start: start as u32, end: end as u32 }
+        Self {
+            start: start as u32,
+            end: end as u32,
+        }
     }
 
     /// 取区间对应的文本；越界时返回空串，避免解析期的越界访问扩散到上层。
     pub fn text<'a>(&self, source: &'a str) -> &'a str {
-        source.get(self.start as usize..self.end as usize).unwrap_or("")
+        source
+            .get(self.start as usize..self.end as usize)
+            .unwrap_or("")
     }
 
     /// 是否包含指定字节位置。
@@ -62,7 +67,10 @@ impl<'a> LineIndex<'a> {
 
     /// 某一行的起始字节偏移。
     pub fn line_start(&self, line: u32) -> u32 {
-        self.starts.get(line as usize).copied().unwrap_or(self.source.len() as u32)
+        self.starts
+            .get(line as usize)
+            .copied()
+            .unwrap_or(self.source.len() as u32)
     }
 
     /// 字节偏移换算为行列（UTF-16 代码单元）。
@@ -73,7 +81,10 @@ impl<'a> LineIndex<'a> {
             Err(index) => index.saturating_sub(1),
         };
         let start = self.starts[line] as usize;
-        let character = self.source[start..offset as usize].chars().map(char::len_utf16).sum::<usize>();
+        let character = self.source[start..offset as usize]
+            .chars()
+            .map(char::len_utf16)
+            .sum::<usize>();
         (line as u32, character as u32)
     }
 
