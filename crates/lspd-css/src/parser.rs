@@ -5,7 +5,7 @@
 
 use lspd_core::text::Span;
 
-use crate::ast::{Ast, Node, NodeKind, NONE};
+use crate::ast::{Ast, NONE, Node, NodeKind};
 use crate::dialect::Dialect;
 
 /// 诊断严重程度。
@@ -102,7 +102,10 @@ impl<'a> Parser<'a> {
 
         self.close_unclosed();
         self.diagnostics.sort_by_key(|item| item.span.start);
-        ParseResult { ast: self.ast, diagnostics: self.diagnostics }
+        ParseResult {
+            ast: self.ast,
+            diagnostics: self.diagnostics,
+        }
     }
 
     /// 关闭当前块；没有可关闭的块时报错。
@@ -130,7 +133,12 @@ impl<'a> Parser<'a> {
         match boundary {
             Boundary::Brace => {
                 let prelude = self.tight(Span::new(self.position, cursor));
-                let index = self.push(NodeKind::AtRule, Span::new(start, cursor + 1), name, prelude);
+                let index = self.push(
+                    NodeKind::AtRule,
+                    Span::new(start, cursor + 1),
+                    name,
+                    prelude,
+                );
                 self.position = cursor + 1;
                 self.stack.push(index);
             }
@@ -138,7 +146,11 @@ impl<'a> Parser<'a> {
                 let prelude = self.tight(Span::new(self.position, cursor));
                 let index = self.push(NodeKind::AtRule, Span::new(start, cursor), name, prelude);
                 self.finish(index, cursor);
-                self.position = if matches!(boundary, Boundary::Semicolon) { cursor + 1 } else { cursor };
+                self.position = if matches!(boundary, Boundary::Semicolon) {
+                    cursor + 1
+                } else {
+                    cursor
+                };
             }
         }
     }
@@ -154,7 +166,12 @@ impl<'a> Parser<'a> {
                 if selector.is_empty() {
                     self.error(Span::new(cursor, cursor + 1), "缺少选择器");
                 }
-                let index = self.push(NodeKind::Rule, Span::new(start, cursor + 1), selector, Span::default());
+                let index = self.push(
+                    NodeKind::Rule,
+                    Span::new(start, cursor + 1),
+                    selector,
+                    Span::default(),
+                );
                 self.position = cursor + 1;
                 self.stack.push(index);
             }
@@ -183,7 +200,12 @@ impl<'a> Parser<'a> {
 
         let property = self.tight(Span::new(start, colon));
         let value = self.tight(Span::new(colon + 1, end));
-        let index = self.push(NodeKind::Declaration, Span::new(start, span_end), property, value);
+        let index = self.push(
+            NodeKind::Declaration,
+            Span::new(start, span_end),
+            property,
+            value,
+        );
         self.finish(index, span_end);
 
         if value.is_empty() {
@@ -225,8 +247,12 @@ impl<'a> Parser<'a> {
         while index < self.bytes.len() {
             match self.bytes[index] {
                 b'"' | b'\'' => index = self.skip_string(index).0,
-                b'/' if self.bytes.get(index + 1) == Some(&b'*') => index = self.skip_block_comment(index),
-                b'/' if self.dialect.has_line_comments() && self.bytes.get(index + 1) == Some(&b'/') => {
+                b'/' if self.bytes.get(index + 1) == Some(&b'*') => {
+                    index = self.skip_block_comment(index)
+                }
+                b'/' if self.dialect.has_line_comments()
+                    && self.bytes.get(index + 1) == Some(&b'/') =>
+                {
                     index = self.skip_line_comment(index)
                 }
                 b'(' => {
@@ -250,11 +276,15 @@ impl<'a> Parser<'a> {
     /// 跳过空白与注释。
     fn skip_trivia(&mut self) {
         loop {
-            while self.position < self.bytes.len() && self.bytes[self.position].is_ascii_whitespace() {
+            while self.position < self.bytes.len()
+                && self.bytes[self.position].is_ascii_whitespace()
+            {
                 self.position += 1;
             }
 
-            if self.bytes.get(self.position) == Some(&b'/') && self.bytes.get(self.position + 1) == Some(&b'*') {
+            if self.bytes.get(self.position) == Some(&b'/')
+                && self.bytes.get(self.position + 1) == Some(&b'*')
+            {
                 self.position = self.skip_block_comment(self.position);
                 continue;
             }
@@ -292,7 +322,9 @@ impl<'a> Parser<'a> {
 
     /// 跳行注释。
     fn skip_line_comment(&self, start: usize) -> usize {
-        find(&self.bytes[start + 2..], b"\n").map(|offset| start + 2 + offset + 1).unwrap_or(self.bytes.len())
+        find(&self.bytes[start + 2..], b"\n")
+            .map(|offset| start + 2 + offset + 1)
+            .unwrap_or(self.bytes.len())
     }
 
     /// 文件结束时仍未闭合的块逐个报错。
@@ -319,7 +351,10 @@ impl<'a> Parser<'a> {
         let text = span.text(self.source);
         let leading = text.len() - text.trim_start().len();
         let trailing = text.len() - text.trim_end().len();
-        Span::new(span.start as usize + leading, (span.end as usize).saturating_sub(trailing))
+        Span::new(
+            span.start as usize + leading,
+            (span.end as usize).saturating_sub(trailing),
+        )
     }
 
     /// 创建节点并挂到当前块下。
@@ -356,12 +391,20 @@ impl<'a> Parser<'a> {
 
     /// 记录一条错误。
     fn error(&mut self, span: Span, message: impl Into<String>) {
-        self.diagnostics.push(Diagnostic { span, severity: Severity::Error, message: message.into() });
+        self.diagnostics.push(Diagnostic {
+            span,
+            severity: Severity::Error,
+            message: message.into(),
+        });
     }
 
     /// 记录一条警告。
     fn warn(&mut self, span: Span, message: impl Into<String>) {
-        self.diagnostics.push(Diagnostic { span, severity: Severity::Warning, message: message.into() });
+        self.diagnostics.push(Diagnostic {
+            span,
+            severity: Severity::Warning,
+            message: message.into(),
+        });
     }
 }
 
@@ -375,7 +418,9 @@ fn find(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     if needle.is_empty() || haystack.len() < needle.len() {
         return None;
     }
-    haystack.windows(needle.len()).position(|window| window == needle)
+    haystack
+        .windows(needle.len())
+        .position(|window| window == needle)
 }
 
 #[cfg(test)]
@@ -387,7 +432,11 @@ mod tests {
     fn parses_rule_with_declarations() {
         let source = "a { color: red; }\nb { margin: 0 }";
         let result = parse(source, Dialect::Css);
-        assert!(result.diagnostics.is_empty(), "诊断：{:?}", result.diagnostics);
+        assert!(
+            result.diagnostics.is_empty(),
+            "诊断：{:?}",
+            result.diagnostics
+        );
 
         assert_eq!(result.ast.roots.len(), 2);
         let first = result.ast.roots[0];
@@ -404,7 +453,11 @@ mod tests {
     fn parses_at_rules() {
         let source = "@import \"a.css\";\n@media (min-width: 600px) { a { color: red } }";
         let result = parse(source, Dialect::Css);
-        assert!(result.diagnostics.is_empty(), "诊断：{:?}", result.diagnostics);
+        assert!(
+            result.diagnostics.is_empty(),
+            "诊断：{:?}",
+            result.diagnostics
+        );
 
         let rules: Vec<u32> = result.ast.nodes_of(NodeKind::AtRule).collect();
         assert_eq!(rules.len(), 2);
@@ -416,14 +469,24 @@ mod tests {
     #[test]
     fn reports_unclosed_block() {
         let result = parse("a { color: red;", Dialect::Css);
-        assert!(result.diagnostics.iter().any(|item| item.message.contains("未闭合")));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|item| item.message.contains("未闭合"))
+        );
     }
 
     /// 多余的右花括号要报错。
     #[test]
     fn reports_extra_brace() {
         let result = parse("a { color: red; }\n}", Dialect::Css);
-        assert!(result.diagnostics.iter().any(|item| item.message.contains("多余")));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|item| item.message.contains("多余"))
+        );
     }
 
     /// SCSS 的 `//` 行注释不参与解析。
@@ -431,7 +494,11 @@ mod tests {
     fn skips_line_comments_in_scss() {
         let source = "// 注释 { 假规则\na { color: red; }";
         let result = parse(source, Dialect::Scss);
-        assert!(result.diagnostics.is_empty(), "诊断：{:?}", result.diagnostics);
+        assert!(
+            result.diagnostics.is_empty(),
+            "诊断：{:?}",
+            result.diagnostics
+        );
         assert_eq!(result.ast.roots.len(), 1);
     }
 
@@ -442,8 +509,18 @@ mod tests {
         let result = parse(source, Dialect::Css);
         let rule = result.ast.roots[0];
         let declaration = result.ast.children(rule).next().unwrap();
-        assert_eq!(result.ast.node(declaration).name.text(source).trim(), "background");
-        assert!(result.ast.node(declaration).value.text(source).contains("base64"));
+        assert_eq!(
+            result.ast.node(declaration).name.text(source).trim(),
+            "background"
+        );
+        assert!(
+            result
+                .ast
+                .node(declaration)
+                .value
+                .text(source)
+                .contains("base64")
+        );
     }
 
     /// 嵌套规则（SCSS）作为子节点出现。
@@ -452,7 +529,11 @@ mod tests {
         let source = ".a { color: red; .b { color: blue; } }";
         let result = parse(source, Dialect::Scss);
         let outer = result.ast.roots[0];
-        let kinds: Vec<NodeKind> = result.ast.children(outer).map(|index| result.ast.node(index).kind).collect();
+        let kinds: Vec<NodeKind> = result
+            .ast
+            .children(outer)
+            .map(|index| result.ast.node(index).kind)
+            .collect();
         assert_eq!(kinds, vec![NodeKind::Declaration, NodeKind::Rule]);
     }
 }

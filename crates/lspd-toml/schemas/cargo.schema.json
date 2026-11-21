@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Cargo.toml",
+  "type": "object",
+  "properties": {
+    "package": {
+      "type": "object",
+      "description": "包元数据与构建配置。",
+      "properties": {
+        "name": { "type": "string", "description": "包名。" },
+        "version": { "type": "string", "description": "包版本号。" },
+        "edition": { "type": "string", "description": "Rust edition。", "enum": ["2015", "2018", "2021", "2024"] },
+        "rust-version": { "type": "string", "description": "支持的最低 Rust 版本（MSRV）。" },
+        "description": { "type": "string", "description": "包说明。" },
+        "license": { "type": "string", "description": "许可证标识。" },
+        "repository": { "type": "string", "description": "源码仓库地址。" },
+        "publish": { "type": ["boolean", "array"], "description": "是否允许发布，或允许发布的 registry 列表。" },
+        "default-run": { "type": "string", "description": "cargo run 的默认二进制。" },
+        "build": { "type": "string", "description": "构建脚本路径。" },
+        "workspace": { "type": "string", "description": "所属 workspace 的路径。" }
+      }
+    },
+    "workspace": {
+      "type": "object",
+      "description": "Workspace 配置。",
+      "properties": {
+        "members": { "type": "array", "description": "workspace 成员路径。", "items": { "type": "string" } },
+        "exclude": { "type": "array", "description": "排除的路径。", "items": { "type": "string" } },
+        "resolver": { "type": "string", "description": "依赖解析器版本。", "enum": ["1", "2", "3"] },
+        "default-members": { "type": "array", "description": "默认操作的成员。", "items": { "type": "string" } },
+        "dependencies": { "type": "object", "description": "workspace 共享依赖。" },
+        "package": { "type": "object", "description": "workspace 共享包元数据。" }
+      }
+    },
+    "dependencies": { "type": "object", "description": "运行时依赖。" },
+    "dev-dependencies": { "type": "object", "description": "开发/测试依赖。" },
+    "build-dependencies": { "type": "object", "description": "构建脚本依赖。" },
+    "features": { "type": "object", "description": "Cargo feature 定义。" },
+    "lib": {
+      "type": "object",
+      "description": "库目标配置。",
+      "properties": {
+        "name": { "type": "string", "description": "库名。" },
+        "path": { "type": "string", "description": "库入口路径。" },
+        "crate-type": { "type": "array", "description": "产物类型。", "items": { "type": "string", "enum": ["lib", "rlib", "dylib", "cdylib", "staticlib", "proc-macro"] } },
+        "proc-macro": { "type": "boolean", "description": "是否为 proc-macro crate。" }
+      }
+    },
+    "bin": { "type": "array", "description": "二进制目标配置。", "items": { "type": "object", "properties": { "name": { "type": "string", "description": "二进制名。" }, "path": { "type": "string", "description": "入口文件路径。" } } } },
+    "profile": { "type": "object", "description": "编译 profile 配置。" }
+  }
+}

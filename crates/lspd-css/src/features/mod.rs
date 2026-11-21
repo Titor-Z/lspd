@@ -8,7 +8,7 @@ pub mod navigation;
 pub mod symbols;
 
 use lspd_core::text::{LineIndex, Span};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::ast::Ast;
 

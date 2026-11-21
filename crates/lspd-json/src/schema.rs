@@ -24,6 +24,7 @@ const VSCODE_SETTINGS_SCHEMA: &str = include_str!("../schemas/vscode-settings.sc
 const VSCODE_EXTENSIONS_SCHEMA: &str = include_str!("../schemas/vscode-extensions.schema.json");
 const VSCODE_TASKS_SCHEMA: &str = include_str!("../schemas/vscode-tasks.schema.json");
 const VSCODE_LAUNCH_SCHEMA: &str = include_str!("../schemas/vscode-launch.schema.json");
+const CARGO_SCHEMA: &str = include_str!("../../lspd-toml/schemas/cargo.schema.json");
 
 /// 从根节点 `$schema` 或文件名映射加载 schema。
 ///
@@ -59,6 +60,7 @@ fn builtin_schema(document_uri: &str) -> Option<Value> {
         "extensions.json" => VSCODE_EXTENSIONS_SCHEMA,
         "tasks.json" => VSCODE_TASKS_SCHEMA,
         "launch.json" => VSCODE_LAUNCH_SCHEMA,
+        "Cargo.toml" => CARGO_SCHEMA,
         _ => return None,
     };
 
@@ -72,7 +74,10 @@ fn is_tsconfig_name(name: &str) -> bool {
 
 /// 从 URI/路径里取文件名。
 fn file_name(document_uri: &str) -> &str {
-    let path = document_uri.split(['?', '#']).next().unwrap_or(document_uri);
+    let path = document_uri
+        .split(['?', '#'])
+        .next()
+        .unwrap_or(document_uri);
     path.rsplit('/').next().unwrap_or(path)
 }
 
@@ -264,7 +269,12 @@ fn locate<'s>(node: &'s Json, schema: &'s Value, offset: u32) -> Located<'s> {
                         .get("properties")
                         .and_then(|props| props.get(&member.key_name))
                         .unwrap_or(&Value::Null);
-                    return Located { node: &member.value, schema: sub, kind: HitKind::Key, key_name: Some(&member.key_name) };
+                    return Located {
+                        node: &member.value,
+                        schema: sub,
+                        kind: HitKind::Key,
+                        key_name: Some(&member.key_name),
+                    };
                 }
 
                 if member.value.span().contains(offset) {
@@ -275,10 +285,20 @@ fn locate<'s>(node: &'s Json, schema: &'s Value, offset: u32) -> Located<'s> {
                     if matches!(member.value, Json::Object { .. } | Json::Array { .. }) {
                         return locate(&member.value, sub, offset);
                     }
-                    return Located { node: &member.value, schema: sub, kind: HitKind::Value, key_name: Some(&member.key_name) };
+                    return Located {
+                        node: &member.value,
+                        schema: sub,
+                        kind: HitKind::Value,
+                        key_name: Some(&member.key_name),
+                    };
                 }
             }
-            Located { node, schema, kind: HitKind::Value, key_name: None }
+            Located {
+                node,
+                schema,
+                kind: HitKind::Value,
+                key_name: None,
+            }
         }
         Json::Array { items, .. } => {
             let sub = schema.get("items").unwrap_or(&Value::Null);
@@ -287,19 +307,37 @@ fn locate<'s>(node: &'s Json, schema: &'s Value, offset: u32) -> Located<'s> {
                     if matches!(item, Json::Object { .. } | Json::Array { .. }) {
                         return locate(item, sub, offset);
                     }
-                    return Located { node: item, schema: sub, kind: HitKind::Value, key_name: None };
+                    return Located {
+                        node: item,
+                        schema: sub,
+                        kind: HitKind::Value,
+                        key_name: None,
+                    };
                 }
             }
-            Located { node, schema, kind: HitKind::Value, key_name: None }
+            Located {
+                node,
+                schema,
+                kind: HitKind::Value,
+                key_name: None,
+            }
         }
-        _ => Located { node, schema, kind: HitKind::Value, key_name: None },
+        _ => Located {
+            node,
+            schema,
+            kind: HitKind::Value,
+            key_name: None,
+        },
     }
 }
 
 /// 对象键补全：schema 的 properties 中未出现的键；根对象额外给 `$schema`。
 fn key_items(schema: &Value, members: &[crate::parser::Member], is_root: bool) -> Vec<Value> {
     let mut items = Vec::new();
-    let present: Vec<&str> = members.iter().map(|member| member.key_name.as_str()).collect();
+    let present: Vec<&str> = members
+        .iter()
+        .map(|member| member.key_name.as_str())
+        .collect();
 
     if let Some(properties) = schema.get("properties").and_then(Value::as_object) {
         for key in properties.keys() {
@@ -315,7 +353,9 @@ fn key_items(schema: &Value, members: &[crate::parser::Member], is_root: bool) -
     }
 
     if is_root && !present.contains(&"$schema") {
-        items.push(json!({ "label": "$schema", "kind": ITEM_PROPERTY, "insertText": "\"$schema\": " }));
+        items.push(
+            json!({ "label": "$schema", "kind": ITEM_PROPERTY, "insertText": "\"$schema\": " }),
+        );
     }
 
     items
@@ -368,19 +408,34 @@ fn check(source: &str, node: &Json, schema: &Value, lines: &LineIndex<'_>, out: 
 
     if let Some(expected) = schema.get("type") {
         if !type_matches(source, node, expected) {
-            out.push(diagnostic(lines, node.span(), level::ERROR, format!("类型应为 {}", describe_type(expected))));
+            out.push(diagnostic(
+                lines,
+                node.span(),
+                level::ERROR,
+                format!("类型应为 {}", describe_type(expected)),
+            ));
             return; // 类型不符时不再深入，避免连带噪声
         }
     }
 
     if let Some(allowed) = schema.get("enum").and_then(Value::as_array) {
         if !allowed.iter().any(|option| equals(source, node, option)) {
-            out.push(diagnostic(lines, node.span(), level::ERROR, "取值不在允许集合内"));
+            out.push(diagnostic(
+                lines,
+                node.span(),
+                level::ERROR,
+                "取值不在允许集合内",
+            ));
         }
     }
     if let Some(constant) = schema.get("const") {
         if !equals(source, node, constant) {
-            out.push(diagnostic(lines, node.span(), level::ERROR, "取值与 `const` 不符"));
+            out.push(diagnostic(
+                lines,
+                node.span(),
+                level::ERROR,
+                "取值与 `const` 不符",
+            ));
         }
     }
 
@@ -390,7 +445,12 @@ fn check(source: &str, node: &Json, schema: &Value, lines: &LineIndex<'_>, out: 
                 for name in required.iter().filter_map(Value::as_str) {
                     if !members.iter().any(|member| member.key_name == name) {
                         let target = members.first().map_or(*span, |member| member.key);
-                        out.push(diagnostic(lines, target, level::ERROR, format!("缺少必需属性 `{name}`")));
+                        out.push(diagnostic(
+                            lines,
+                            target,
+                            level::ERROR,
+                            format!("缺少必需属性 `{name}`"),
+                        ));
                     }
                 }
             }
@@ -402,7 +462,12 @@ fn check(source: &str, node: &Json, schema: &Value, lines: &LineIndex<'_>, out: 
                 if let Some(sub) = properties.and_then(|props| props.get(&member.key_name)) {
                     check(source, &member.value, sub, lines, out);
                 } else if additional.and_then(Value::as_bool) == Some(false) {
-                    out.push(diagnostic(lines, member.key, level::WARNING, format!("不应存在的属性 `{}`", member.key_name)));
+                    out.push(diagnostic(
+                        lines,
+                        member.key,
+                        level::WARNING,
+                        format!("不应存在的属性 `{}`", member.key_name),
+                    ));
                 }
             }
         }
@@ -432,7 +497,13 @@ fn check(source: &str, node: &Json, schema: &Value, lines: &LineIndex<'_>, out: 
 }
 
 /// `pattern` 校验：ECMA-262 正则，锚定语义（未匹配即告警）。
-fn check_pattern(text: &str, schema: &Value, span: Span, lines: &LineIndex<'_>, out: &mut Vec<Value>) {
+fn check_pattern(
+    text: &str,
+    schema: &Value,
+    span: Span,
+    lines: &LineIndex<'_>,
+    out: &mut Vec<Value>,
+) {
     let Some(pattern) = schema.get("pattern").and_then(Value::as_str) else {
         return;
     };
@@ -440,52 +511,104 @@ fn check_pattern(text: &str, schema: &Value, span: Span, lines: &LineIndex<'_>, 
     match regex_lite::Regex::new(pattern) {
         Ok(re) => {
             if !re.is_match(text) {
-                out.push(diagnostic(lines, span, level::WARNING, format!("取值不匹配模式 `{pattern}`")));
+                out.push(diagnostic(
+                    lines,
+                    span,
+                    level::WARNING,
+                    format!("取值不匹配模式 `{pattern}`"),
+                ));
             }
         }
         // schema 本身的 pattern 写错了：不阻塞编辑，只提示一次
-        Err(error) => out.push(diagnostic(lines, span, level::WARNING, format!("schema 的 `pattern` 无效：{error}"))),
+        Err(error) => out.push(diagnostic(
+            lines,
+            span,
+            level::WARNING,
+            format!("schema 的 `pattern` 无效：{error}"),
+        )),
     }
 }
 
 /// 数值范围校验。
-fn check_number(source: &str, span: Span, schema: &Value, lines: &LineIndex<'_>, out: &mut Vec<Value>) {
+fn check_number(
+    source: &str,
+    span: Span,
+    schema: &Value,
+    lines: &LineIndex<'_>,
+    out: &mut Vec<Value>,
+) {
     let Ok(number) = span.text(source).parse::<f64>() else {
         return;
     };
 
     if let Some(minimum) = schema.get("minimum").and_then(Value::as_f64) {
         if number < minimum {
-            out.push(diagnostic(lines, span, level::WARNING, format!("数值应不小于 {minimum}")));
+            out.push(diagnostic(
+                lines,
+                span,
+                level::WARNING,
+                format!("数值应不小于 {minimum}"),
+            ));
         }
     }
     if let Some(maximum) = schema.get("maximum").and_then(Value::as_f64) {
         if number > maximum {
-            out.push(diagnostic(lines, span, level::WARNING, format!("数值应不大于 {maximum}")));
+            out.push(diagnostic(
+                lines,
+                span,
+                level::WARNING,
+                format!("数值应不大于 {maximum}"),
+            ));
         }
     }
     if let Some(minimum) = schema.get("exclusiveMinimum").and_then(Value::as_f64) {
         if number <= minimum {
-            out.push(diagnostic(lines, span, level::WARNING, format!("数值应大于 {minimum}")));
+            out.push(diagnostic(
+                lines,
+                span,
+                level::WARNING,
+                format!("数值应大于 {minimum}"),
+            ));
         }
     }
     if let Some(maximum) = schema.get("exclusiveMaximum").and_then(Value::as_f64) {
         if number >= maximum {
-            out.push(diagnostic(lines, span, level::WARNING, format!("数值应小于 {maximum}")));
+            out.push(diagnostic(
+                lines,
+                span,
+                level::WARNING,
+                format!("数值应小于 {maximum}"),
+            ));
         }
     }
 }
 
 /// 字符串长度校验。
-fn check_length(length: u64, schema: &Value, span: Span, lines: &LineIndex<'_>, out: &mut Vec<Value>) {
+fn check_length(
+    length: u64,
+    schema: &Value,
+    span: Span,
+    lines: &LineIndex<'_>,
+    out: &mut Vec<Value>,
+) {
     if let Some(min) = schema.get("minLength").and_then(Value::as_u64) {
         if length < min {
-            out.push(diagnostic(lines, span, level::WARNING, format!("长度应不少于 {min}")));
+            out.push(diagnostic(
+                lines,
+                span,
+                level::WARNING,
+                format!("长度应不少于 {min}"),
+            ));
         }
     }
     if let Some(max) = schema.get("maxLength").and_then(Value::as_u64) {
         if length > max {
-            out.push(diagnostic(lines, span, level::WARNING, format!("长度应不超过 {max}")));
+            out.push(diagnostic(
+                lines,
+                span,
+                level::WARNING,
+                format!("长度应不超过 {max}"),
+            ));
         }
     }
 }
@@ -513,7 +636,9 @@ fn type_matches(source: &str, node: &Json, expected: &Value) -> bool {
 /// 值与 schema 常量是否相等（按节点类型比较）。
 fn equals(source: &str, node: &Json, option: &Value) -> bool {
     match (node, option) {
-        (Json::String { content, .. }, Value::String(text)) => decode_string(source, *content) == *text,
+        (Json::String { content, .. }, Value::String(text)) => {
+            decode_string(source, *content) == *text
+        }
         (Json::Bool { value, .. }, Value::Bool(flag)) => value == flag,
         (Json::Null { .. }, Value::Null) => true,
         (Json::Number { span }, Value::Number(number)) => span
@@ -527,7 +652,12 @@ fn equals(source: &str, node: &Json, option: &Value) -> bool {
 }
 
 /// 构造一条 LSP 诊断。
-fn diagnostic(lines: &LineIndex<'_>, span: Span, severity: u8, message: impl Into<String>) -> Value {
+fn diagnostic(
+    lines: &LineIndex<'_>,
+    span: Span,
+    severity: u8,
+    message: impl Into<String>,
+) -> Value {
     let (start_line, start_char) = lines.position(span.start);
     let (end_line, end_char) = lines.position(span.end);
     json!({
@@ -545,7 +675,11 @@ fn diagnostic(lines: &LineIndex<'_>, span: Span, severity: u8, message: impl Int
 fn describe_type(expected: &Value) -> String {
     match expected {
         Value::String(single) => single.clone(),
-        Value::Array(list) => list.iter().filter_map(Value::as_str).collect::<Vec<_>>().join(" | "),
+        Value::Array(list) => list
+            .iter()
+            .filter_map(Value::as_str)
+            .collect::<Vec<_>>()
+            .join(" | "),
         _ => String::new(),
     }
 }
@@ -576,21 +710,32 @@ mod tests {
     #[test]
     fn type_mismatch() {
         let found = messages(r#"{ "type": "string" }"#, "123");
-        assert!(found.iter().any(|m| m.contains("类型应为 string")), "{found:?}");
+        assert!(
+            found.iter().any(|m| m.contains("类型应为 string")),
+            "{found:?}"
+        );
     }
 
     /// required 缺失要报错。
     #[test]
     fn required_missing() {
         let schema = r#"{ "type": "object", "properties": { "name": { "type": "string" } }, "required": ["name"] }"#;
-        assert!(messages(schema, r#"{ "other": 1 }"#).iter().any(|m| m.contains("缺少必需属性 `name`")));
+        assert!(
+            messages(schema, r#"{ "other": 1 }"#)
+                .iter()
+                .any(|m| m.contains("缺少必需属性 `name`"))
+        );
         assert!(messages(schema, r#"{ "name": "ok" }"#).is_empty());
     }
 
     /// enum 与 const 命中则无诊断。
     #[test]
     fn enum_and_const() {
-        assert!(messages(r#"{ "enum": ["a", "b"] }"#, "\"c\"").iter().any(|m| m.contains("允许集合")));
+        assert!(
+            messages(r#"{ "enum": ["a", "b"] }"#, "\"c\"")
+                .iter()
+                .any(|m| m.contains("允许集合"))
+        );
         assert!(messages(r#"{ "enum": ["a", "b"] }"#, "\"a\"").is_empty());
         assert!(messages(r#"{ "const": 5 }"#, "5").is_empty());
     }
@@ -598,30 +743,51 @@ mod tests {
     /// 数值范围与字符串长度。
     #[test]
     fn ranges_and_lengths() {
-        assert!(messages(r#"{ "type": "number", "minimum": 10 }"#, "3").iter().any(|m| m.contains("不小于")));
-        assert!(messages(r#"{ "type": "string", "maxLength": 2 }"#, "\"abc\"").iter().any(|m| m.contains("不超过")));
+        assert!(
+            messages(r#"{ "type": "number", "minimum": 10 }"#, "3")
+                .iter()
+                .any(|m| m.contains("不小于"))
+        );
+        assert!(
+            messages(r#"{ "type": "string", "maxLength": 2 }"#, "\"abc\"")
+                .iter()
+                .any(|m| m.contains("不超过"))
+        );
     }
 
     /// properties 递归到嵌套值。
     #[test]
     fn nested_properties() {
         let schema = r#"{ "type": "object", "properties": { "port": { "type": "integer" } } }"#;
-        assert!(messages(schema, r#"{ "port": 1.5 }"#).iter().any(|m| m.contains("类型应为 integer")));
+        assert!(
+            messages(schema, r#"{ "port": 1.5 }"#)
+                .iter()
+                .any(|m| m.contains("类型应为 integer"))
+        );
         assert!(messages(schema, r#"{ "port": 8080 }"#).is_empty());
     }
 
     /// additionalProperties: false 拒绝未知键。
     #[test]
     fn additional_properties_false() {
-        let schema = r#"{ "type": "object", "properties": { "a": {} }, "additionalProperties": false }"#;
-        assert!(messages(schema, r#"{ "a": 1, "b": 2 }"#).iter().any(|m| m.contains("不应存在的属性 `b`")));
+        let schema =
+            r#"{ "type": "object", "properties": { "a": {} }, "additionalProperties": false }"#;
+        assert!(
+            messages(schema, r#"{ "a": 1, "b": 2 }"#)
+                .iter()
+                .any(|m| m.contains("不应存在的属性 `b`"))
+        );
     }
 
     /// items 对数组元素递归。
     #[test]
     fn array_items() {
         let schema = r#"{ "type": "array", "items": { "type": "integer" } }"#;
-        assert!(messages(schema, "[1, \"x\"]").iter().any(|m| m.contains("类型应为 integer")));
+        assert!(
+            messages(schema, "[1, \"x\"]")
+                .iter()
+                .any(|m| m.contains("类型应为 integer"))
+        );
     }
 
     /// `http(s)` 的 `$schema` 被忽略，不读取。
@@ -640,7 +806,10 @@ mod tests {
 
         // pattern 写错：提示 schema 问题而非静默放行
         let invalid = messages(r#"{ "type": "string", "pattern": "[" }"#, r#""x""#);
-        assert!(invalid.iter().any(|m| m.contains("`pattern` 无效")), "{invalid:?}");
+        assert!(
+            invalid.iter().any(|m| m.contains("`pattern` 无效")),
+            "{invalid:?}"
+        );
     }
 
     /// 取补全项标签。
@@ -658,21 +827,31 @@ mod tests {
     fn completes_keys() {
         let schema = r#"{ "type": "object", "properties": { "name": {}, "age": {} } }"#;
         let labels = completion_labels(schema, "{ }", 2);
-        assert!(labels.contains(&"name".to_string()) && labels.contains(&"age".to_string()), "{labels:?}");
+        assert!(
+            labels.contains(&"name".to_string()) && labels.contains(&"age".to_string()),
+            "{labels:?}"
+        );
         assert!(labels.contains(&"$schema".to_string()));
 
         // 已有的键不再重复给
         let partial = completion_labels(schema, "{ \"name\": \"x\", }", 16);
-        assert!(!partial.contains(&"name".to_string()) && partial.contains(&"age".to_string()), "{partial:?}");
+        assert!(
+            !partial.contains(&"name".to_string()) && partial.contains(&"age".to_string()),
+            "{partial:?}"
+        );
     }
 
     /// 冒号后的值位置：按属性子 schema 给枚举值。
     #[test]
     fn completes_enum_values() {
-        let schema = r#"{ "type": "object", "properties": { "env": { "enum": ["dev", "prod"] } } }"#;
+        let schema =
+            r#"{ "type": "object", "properties": { "env": { "enum": ["dev", "prod"] } } }"#;
         let offset = (r#"{ "env": "#).len() as u32;
         let labels = completion_labels(schema, r#"{ "env": "#, offset);
-        assert!(labels.contains(&"dev".to_string()) && labels.contains(&"prod".to_string()), "{labels:?}");
+        assert!(
+            labels.contains(&"dev".to_string()) && labels.contains(&"prod".to_string()),
+            "{labels:?}"
+        );
     }
 
     /// 键悬停应返回描述、类型与枚举信息。
@@ -713,6 +892,7 @@ mod tests {
             ("file:///p/.vscode/extensions.json", "recommendations"),
             ("file:///p/.vscode/tasks.json", "tasks"),
             ("file:///p/.vscode/launch.json", "configurations"),
+            ("file:///p/Cargo.toml", "package"),
         ] {
             let schema = builtin_schema(uri).unwrap_or_else(|| panic!("{uri} 应命中内置 schema"));
             assert!(schema["properties"].get(key).is_some(), "{uri} 缺少 {key}");

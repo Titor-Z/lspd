@@ -27,7 +27,9 @@ const MAX_ITEMS: usize = 200;
 const WIDE_KEYWORDS: &[&str] = &["inherit", "initial", "unset", "revert", "revert-layer"];
 
 /// 常用函数，值位置的补全候选。
-const FUNCTIONS: &[&str] = &["calc(", "var(", "rgb(", "hsl(", "min(", "max(", "clamp(", "url("];
+const FUNCTIONS: &[&str] = &[
+    "calc(", "var(", "rgb(", "hsl(", "min(", "max(", "clamp(", "url(",
+];
 
 /// 一条方言 at 规则关键字：名称、归类、用途。
 struct Keyword {
@@ -41,29 +43,105 @@ struct Keyword {
 
 /// Sass 专有 at 规则关键字（SCSS 与缩进语法共用）。
 const SASS_KEYWORDS: &[Keyword] = &[
-    Keyword { name: "@mixin", detail: "Sass", description: "定义可复用的样式混入（mixin）。" },
-    Keyword { name: "@include", detail: "Sass", description: "在规则中引入一个 mixin。" },
-    Keyword { name: "@function", detail: "Sass", description: "定义返回值的 Sass 函数。" },
-    Keyword { name: "@extend", detail: "Sass", description: "把一个选择器的样式继承到当前选择器。" },
-    Keyword { name: "@use", detail: "Sass", description: "加载模块并暴露其成员（命名空间）。" },
-    Keyword { name: "@forward", detail: "Sass", description: "把某个模块的成员转出给使用者。" },
-    Keyword { name: "@if", detail: "Sass", description: "条件分支。" },
-    Keyword { name: "@else", detail: "Sass", description: "`@if` 的否则分支。" },
-    Keyword { name: "@each", detail: "Sass", description: "遍历列表或 map。" },
-    Keyword { name: "@for", detail: "Sass", description: "按区间计数循环。" },
-    Keyword { name: "@while", detail: "Sass", description: "条件循环。" },
-    Keyword { name: "@return", detail: "Sass", description: "从 `@function` 返回结果。" },
-    Keyword { name: "@at-root", detail: "Sass", description: "在嵌套中把规则提升到根。" },
-    Keyword { name: "@content", detail: "Sass", description: "在 mixin 内渲染 `@include` 传入的块。" },
-    Keyword { name: "@debug", detail: "Sass", description: "输出调试信息。" },
-    Keyword { name: "@warn", detail: "Sass", description: "发出警告。" },
-    Keyword { name: "@error", detail: "Sass", description: "抛出错误。" },
+    Keyword {
+        name: "@mixin",
+        detail: "Sass",
+        description: "定义可复用的样式混入（mixin）。",
+    },
+    Keyword {
+        name: "@include",
+        detail: "Sass",
+        description: "在规则中引入一个 mixin。",
+    },
+    Keyword {
+        name: "@function",
+        detail: "Sass",
+        description: "定义返回值的 Sass 函数。",
+    },
+    Keyword {
+        name: "@extend",
+        detail: "Sass",
+        description: "把一个选择器的样式继承到当前选择器。",
+    },
+    Keyword {
+        name: "@use",
+        detail: "Sass",
+        description: "加载模块并暴露其成员（命名空间）。",
+    },
+    Keyword {
+        name: "@forward",
+        detail: "Sass",
+        description: "把某个模块的成员转出给使用者。",
+    },
+    Keyword {
+        name: "@if",
+        detail: "Sass",
+        description: "条件分支。",
+    },
+    Keyword {
+        name: "@else",
+        detail: "Sass",
+        description: "`@if` 的否则分支。",
+    },
+    Keyword {
+        name: "@each",
+        detail: "Sass",
+        description: "遍历列表或 map。",
+    },
+    Keyword {
+        name: "@for",
+        detail: "Sass",
+        description: "按区间计数循环。",
+    },
+    Keyword {
+        name: "@while",
+        detail: "Sass",
+        description: "条件循环。",
+    },
+    Keyword {
+        name: "@return",
+        detail: "Sass",
+        description: "从 `@function` 返回结果。",
+    },
+    Keyword {
+        name: "@at-root",
+        detail: "Sass",
+        description: "在嵌套中把规则提升到根。",
+    },
+    Keyword {
+        name: "@content",
+        detail: "Sass",
+        description: "在 mixin 内渲染 `@include` 传入的块。",
+    },
+    Keyword {
+        name: "@debug",
+        detail: "Sass",
+        description: "输出调试信息。",
+    },
+    Keyword {
+        name: "@warn",
+        detail: "Sass",
+        description: "发出警告。",
+    },
+    Keyword {
+        name: "@error",
+        detail: "Sass",
+        description: "抛出错误。",
+    },
 ];
 
 /// Less 专有 at 规则关键字。
 const LESS_KEYWORDS: &[Keyword] = &[
-    Keyword { name: "@plugin", detail: "Less", description: "加载一个 Less 插件。" },
-    Keyword { name: "@reference", detail: "Less", description: "引入仅被 mixin 匹配、不直接输出的样式。" },
+    Keyword {
+        name: "@plugin",
+        detail: "Less",
+        description: "加载一个 Less 插件。",
+    },
+    Keyword {
+        name: "@reference",
+        detail: "Less",
+        description: "引入仅被 mixin 匹配、不直接输出的样式。",
+    },
 ];
 
 /// 补全上下文。
@@ -111,7 +189,10 @@ fn detect(view: &View<'_>, offset: u32) -> Context {
     let line_start = start_of_line(source, offset);
 
     // 当前行首为 `@`：at 规则关键字位置（scss 与缩进语法皆适用）
-    if source[line_start as usize..offset as usize].trim_start().starts_with('@') {
+    if source[line_start as usize..offset as usize]
+        .trim_start()
+        .starts_with('@')
+    {
         return Context::AtRule;
     }
 
@@ -122,7 +203,9 @@ fn detect(view: &View<'_>, offset: u32) -> Context {
                 NodeKind::Declaration => {
                     if node.name.contains(offset) {
                         Context::Property
-                    } else if node.value.contains(offset) || find_colon(source, line_start, offset).is_some() {
+                    } else if node.value.contains(offset)
+                        || find_colon(source, line_start, offset).is_some()
+                    {
                         Context::Value
                     } else {
                         Context::Property
@@ -172,7 +255,9 @@ fn selector_context(view: &View<'_>, index: u32, line_start: u32, offset: u32) -
 
     if let Some(position) = find_colon(view.source, line_start, offset) {
         let before = &view.source[line_start as usize..position as usize];
-        Context::Pseudo { double_colon: before.trim_end().ends_with(':') }
+        Context::Pseudo {
+            double_colon: before.trim_end().ends_with(':'),
+        }
     } else {
         Context::None
     }
@@ -285,11 +370,19 @@ fn push_values(prefix: &str, items: &mut Vec<Value>) {
 
 /// 推送伪类或伪元素补全。
 fn push_pseudos(double_colon: bool, prefix: &str, range: &Value, items: &mut Vec<Value>) {
-    let table = if double_colon { data::PSEUDO_ELEMENTS } else { data::PSEUDO_CLASSES };
+    let table = if double_colon {
+        data::PSEUDO_ELEMENTS
+    } else {
+        data::PSEUDO_CLASSES
+    };
 
     for entry in table {
         let name = entry.name.trim_start_matches(':');
-        let label = if double_colon { format!("::{name}") } else { format!(":{name}") };
+        let label = if double_colon {
+            format!("::{name}")
+        } else {
+            format!(":{name}")
+        };
         if !prefix.is_empty() && !label.starts_with(prefix) {
             continue;
         }
@@ -312,7 +405,15 @@ fn push_at_rules(language_id: &str, prefix: &str, range: &Value, items: &mut Vec
     let mut seen: Vec<&'static str> = Vec::new();
 
     for entry in data::AT_RULES {
-        if push_rule(items, &mut seen, range, &prefix, entry.name, "at 规则", entry.description) {
+        if push_rule(
+            items,
+            &mut seen,
+            range,
+            &prefix,
+            entry.name,
+            "at 规则",
+            entry.description,
+        ) {
             break;
         }
     }
@@ -325,7 +426,15 @@ fn push_at_rules(language_id: &str, prefix: &str, range: &Value, items: &mut Vec
 
     for keyword in keywords {
         let documentation = format!("{}｜{}", keyword.detail, keyword.description);
-        if push_rule(items, &mut seen, range, &prefix, keyword.name, keyword.detail, &documentation) {
+        if push_rule(
+            items,
+            &mut seen,
+            range,
+            &prefix,
+            keyword.name,
+            keyword.detail,
+            &documentation,
+        ) {
             break;
         }
     }

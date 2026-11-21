@@ -129,7 +129,12 @@ impl MarkdownBackend {
     }
 
     /// 描述一条链接的问题；正常时返回 `None`。
-    fn link_problem(&self, document: &Document, link: &Link, parsed: &Parsed) -> Option<BrokenLink> {
+    fn link_problem(
+        &self,
+        document: &Document,
+        link: &Link,
+        parsed: &Parsed,
+    ) -> Option<BrokenLink> {
         let resolved = resolve_document_link(document, link, parsed, self.index.as_ref())?;
         let display = display_target(link, parsed);
         let current = index::uri_path(document.uri());
@@ -161,7 +166,11 @@ impl MarkdownBackend {
 
         let anchor = resolved.anchor?;
         let wanted = parser::slugify(&anchor);
-        if self.heading_slugs(&resolved.path).iter().any(|slug| *slug == wanted) {
+        if self
+            .heading_slugs(&resolved.path)
+            .iter()
+            .any(|slug| *slug == wanted)
+        {
             return None;
         }
 
@@ -303,7 +312,9 @@ impl Backend for MarkdownBackend {
     }
 
     fn did_change_watched_files(&mut self, params: Option<&RawValue>, _out: &mut Vec<Outgoing>) {
-        let Some(params) = params.and_then(|raw| serde_json::from_str::<WatchedFilesParams>(raw.get()).ok()) else {
+        let Some(params) =
+            params.and_then(|raw| serde_json::from_str::<WatchedFilesParams>(raw.get()).ok())
+        else {
             return;
         };
         let Some(index) = self.index.as_mut() else {
@@ -341,7 +352,9 @@ impl Backend for MarkdownBackend {
                 let lines = LineIndex::new(document.text());
 
                 let result = match method {
-                    "textDocument/documentSymbol" => document_symbols(document, &cache.parsed, &lines),
+                    "textDocument/documentSymbol" => {
+                        document_symbols(document, &cache.parsed, &lines)
+                    }
                     _ => folding_ranges(document, &cache.parsed),
                 };
                 Some(Ok(result))
@@ -355,10 +368,14 @@ impl Backend for MarkdownBackend {
 
                 let resolved = self
                     .link_at(&cache.parsed, offset)
-                    .and_then(|link| resolve_document_link(document, link, &cache.parsed, self.index.as_ref()))
+                    .and_then(|link| {
+                        resolve_document_link(document, link, &cache.parsed, self.index.as_ref())
+                    })
                     .filter(|item| item.path.exists());
 
-                Some(Ok(resolved.and_then(|item| definition_location(documents, item)).unwrap_or(Value::Null)))
+                Some(Ok(resolved
+                    .and_then(|item| definition_location(documents, item))
+                    .unwrap_or(Value::Null)))
             }
             "textDocument/references" => {
                 let params: PositionParams = serde_json::from_str(params?.get()).ok()?;
@@ -373,10 +390,15 @@ impl Backend for MarkdownBackend {
 
                 let found = match self.link_at(&cache.parsed, offset) {
                     Some(link) => resolve_document_link(document, link, &cache.parsed, Some(index))
-                        .map(|resolved| index.references_to(&resolved.path, resolved.anchor.as_deref()))
+                        .map(|resolved| {
+                            index.references_to(&resolved.path, resolved.anchor.as_deref())
+                        })
                         .unwrap_or_default(),
                     None => {
-                        let heading = heading_on_line(&cache.parsed, document.position_at(offset as usize).line)?;
+                        let heading = heading_on_line(
+                            &cache.parsed,
+                            document.position_at(offset as usize).line,
+                        )?;
                         index.references_to(&base, Some(&heading.slug))
                     }
                 };
@@ -390,7 +412,9 @@ impl Backend for MarkdownBackend {
                 let offset = document.offset_at(params.position) as u32;
                 let cache = self.cache.as_ref().expect("刚写入缓存");
                 let lines = LineIndex::new(document.text());
-                let Some(heading) = heading_on_line(&cache.parsed, document.position_at(offset as usize).line) else {
+                let Some(heading) =
+                    heading_on_line(&cache.parsed, document.position_at(offset as usize).line)
+                else {
                     return Some(Ok(Value::Null));
                 };
 
@@ -400,7 +424,12 @@ impl Backend for MarkdownBackend {
                 let base = index::uri_path(document.uri())?;
                 let mut changes: Map<String, Value> = Map::new();
 
-                push_edit(&mut changes, document.uri(), range(&lines, heading.text_span), &params.new_name);
+                push_edit(
+                    &mut changes,
+                    document.uri(),
+                    range(&lines, heading.text_span),
+                    &params.new_name,
+                );
 
                 for (path, span) in index.references_to(&base, Some(&heading.slug)) {
                     let Some(uri) = index::path_uri(&path) else {
@@ -428,7 +457,14 @@ impl Backend for MarkdownBackend {
                 let cache = self.cache.as_ref().expect("刚写入缓存");
                 let lines = LineIndex::new(document.text());
 
-                Some(Ok(hover(&cache.parsed, document, offset, self.index.as_ref(), &lines).unwrap_or(Value::Null)))
+                Some(Ok(hover(
+                    &cache.parsed,
+                    document,
+                    offset,
+                    self.index.as_ref(),
+                    &lines,
+                )
+                .unwrap_or(Value::Null)))
             }
             "textDocument/documentLink" => {
                 let params: DocumentParams = serde_json::from_str(params?.get()).ok()?;
@@ -437,7 +473,12 @@ impl Backend for MarkdownBackend {
                 let cache = self.cache.as_ref().expect("刚写入缓存");
                 let lines = LineIndex::new(document.text());
 
-                Some(Ok(document_links(document, &cache.parsed, self.index.as_ref(), &lines)))
+                Some(Ok(document_links(
+                    document,
+                    &cache.parsed,
+                    self.index.as_ref(),
+                    &lines,
+                )))
             }
             "textDocument/codeAction" => {
                 let params: CodeActionParams = serde_json::from_str(params?.get()).ok()?;
@@ -448,7 +489,14 @@ impl Backend for MarkdownBackend {
                 let start = document.offset_at(params.range.start) as u32;
                 let end = document.offset_at(params.range.end) as u32;
 
-                Some(Ok(code_actions(document, &cache.parsed, self, &lines, start, end)))
+                Some(Ok(code_actions(
+                    document,
+                    &cache.parsed,
+                    self,
+                    &lines,
+                    start,
+                    end,
+                )))
             }
             "textDocument/selectionRange" => {
                 let params: SelectionRangeParams = serde_json::from_str(params?.get()).ok()?;
@@ -461,7 +509,12 @@ impl Backend for MarkdownBackend {
                     .positions
                     .iter()
                     .map(|position| {
-                        selection_chain(document, &cache.parsed, &lines, document.offset_at(*position) as u32)
+                        selection_chain(
+                            document,
+                            &cache.parsed,
+                            &lines,
+                            document.offset_at(*position) as u32,
+                        )
                     })
                     .collect();
                 Some(Ok(Value::Array(items)))
@@ -474,7 +527,8 @@ impl Backend for MarkdownBackend {
                 let offset = document.offset_at(params.position) as u32;
                 let lines = LineIndex::new(document.text());
 
-                let items = completion(document, offset, &cache.parsed, self.index.as_ref(), &lines);
+                let items =
+                    completion(document, offset, &cache.parsed, self.index.as_ref(), &lines);
                 Some(Ok(json!({ "isIncomplete": false, "items": items })))
             }
             "workspace/symbol" => {
@@ -637,7 +691,11 @@ fn completion(
 
     if let Some(index) = index {
         for file in index.files() {
-            let name = file.path.file_name().and_then(|name| name.to_str()).unwrap_or_default();
+            let name = file
+                .path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or_default();
             if name.contains(file_part) {
                 items.push(json!({
                     "label": name,
@@ -693,7 +751,10 @@ fn inline_link_items(
     }
 
     let typed_start = (open + 2) as u32;
-    let edit_range = range(lines, Span::new(typed_start as usize, typed_start as usize + typed.len()));
+    let edit_range = range(
+        lines,
+        Span::new(typed_start as usize, typed_start as usize + typed.len()),
+    );
     let mut items = Vec::new();
 
     // `#锚点`：当前文档标题
@@ -719,7 +780,9 @@ fn inline_link_items(
 
     // `文件#锚点`：给该文件的标题
     if let Some((file_part, anchor)) = typed.split_once('#') {
-        let Some(path) = resolve_relative(index.root(), &index::uri_path(document.uri())?, file_part) else {
+        let Some(path) =
+            resolve_relative(index.root(), &index::uri_path(document.uri())?, file_part)
+        else {
             return Some(items);
         };
         for heading in index.headings_of(&path) {
@@ -741,7 +804,11 @@ fn inline_link_items(
         }
 
         let relative = relative_path(index.root(), &file.path);
-        let name = file.path.file_name().and_then(|name| name.to_str()).unwrap_or_default();
+        let name = file
+            .path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or_default();
         // 用户可能已经输入 `./` 或 `../`，过滤时忽略这段前缀
         let needle = typed.trim_start_matches("./");
         if !relative.contains(needle) && !name.contains(needle) {
@@ -816,7 +883,11 @@ fn hover(
     }
 
     let heading = heading_on_line(parsed, document.position_at(offset as usize).line)?;
-    let text = format!("# {} · {}", heading.text_span.text(document.text()), heading.slug);
+    let text = format!(
+        "# {} · {}",
+        heading.text_span.text(document.text()),
+        heading.slug
+    );
     Some(json!({
         "contents": { "kind": "markdown", "value": text },
         "range": range(lines, heading.text_span),
@@ -896,16 +967,30 @@ fn code_actions(
 }
 
 /// 选择范围：行 → 段落 → 标题分区 → 整篇。
-fn selection_chain(document: &Document, parsed: &Parsed, lines: &LineIndex<'_>, offset: u32) -> Value {
+fn selection_chain(
+    document: &Document,
+    parsed: &Parsed,
+    lines: &LineIndex<'_>,
+    offset: u32,
+) -> Value {
     let line = document.position_at(offset as usize).line;
     let mut spans = vec![line_span(document, lines, line, line)];
 
     let (paragraph_start, paragraph_end) = paragraph_bounds(document, line);
     spans.push(line_span(document, lines, paragraph_start, paragraph_end));
 
-    if let Some(position) = parsed.headings.iter().rposition(|heading| heading.line <= line) {
+    if let Some(position) = parsed
+        .headings
+        .iter()
+        .rposition(|heading| heading.line <= line)
+    {
         let end = section_end(&parsed.headings, position, parsed.line_count);
-        spans.push(line_span(document, lines, parsed.headings[position].line, end));
+        spans.push(line_span(
+            document,
+            lines,
+            parsed.headings[position].line,
+            end,
+        ));
     }
 
     spans.push(Span::new(0, document.text().len()));
@@ -959,7 +1044,11 @@ fn workspace_symbols(index: Option<&WorkspaceIndex>, query: &str) -> Value {
             continue;
         };
         let lines = LineIndex::new(&text);
-        let container = file.path.file_name().and_then(|name| name.to_str()).unwrap_or_default();
+        let container = file
+            .path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or_default();
 
         for heading in &file.headings {
             if !query.is_empty() && !heading.text.to_lowercase().contains(&query) {
@@ -1230,7 +1319,10 @@ mod tests {
 
     #[test]
     fn diagnostics_report_missing_file_with_candidate() {
-        let root = workspace("diag", &[("a.md", "# A\n\n见 [[安裝]]。\n"), ("安装.md", "# 安装\n")]);
+        let root = workspace(
+            "diag",
+            &[("a.md", "# A\n\n见 [[安裝]]。\n"), ("安装.md", "# 安装\n")],
+        );
         let document = document(&root, "a.md", "# A\n\n见 [[安裝]]。\n");
         let mut backend = backend(&root);
         open(&mut backend, &document);
@@ -1242,14 +1334,22 @@ mod tests {
         };
         let diagnostics = params["diagnostics"].as_array().unwrap();
         assert_eq!(diagnostics.len(), 1);
-        assert!(diagnostics[0]["message"].as_str().unwrap().contains("安装.md"));
+        assert!(
+            diagnostics[0]["message"]
+                .as_str()
+                .unwrap()
+                .contains("安装.md")
+        );
     }
 
     #[test]
     fn references_find_links_to_heading() {
         let root = workspace(
             "refs",
-            &[("a.md", "# A\n\n[去](./b.md#小节)\n"), ("b.md", "# B\n\n## 小节\n")],
+            &[
+                ("a.md", "# A\n\n[去](./b.md#小节)\n"),
+                ("b.md", "# B\n\n## 小节\n"),
+            ],
         );
         let index = WorkspaceIndex::build(&root);
         let found = index.references_to(&root.join("b.md"), Some("小节"));
@@ -1296,7 +1396,13 @@ mod tests {
         let lines = LineIndex::new(source);
         let offset = source.len() as u32;
 
-        let items = completion(&document, offset, &cache.parsed, backend.index.as_ref(), &lines);
+        let items = completion(
+            &document,
+            offset,
+            &cache.parsed,
+            backend.index.as_ref(),
+            &lines,
+        );
         let labels: Vec<&str> = items
             .as_array()
             .unwrap()

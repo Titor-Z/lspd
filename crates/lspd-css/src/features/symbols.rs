@@ -4,7 +4,7 @@
 //! 名称取选择器或 at 规则前奏，去掉多余空白。
 
 use lspd_core::text::Span;
-use serde_json::{Map, json, Value};
+use serde_json::{Map, Value, json};
 
 use crate::ast::{NONE, NodeKind};
 use crate::features::{View, innermost};
@@ -58,7 +58,11 @@ fn label_of(view: &View<'_>, index: u32) -> String {
         NodeKind::Rule => view.text(node.name),
         _ => {
             // at 规则：名称 + 前奏（前奏可能跨行，压成单行）
-            let prelude = view.text(node.value).split_whitespace().collect::<Vec<_>>().join(" ");
+            let prelude = view
+                .text(node.value)
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ");
             if prelude.is_empty() {
                 return view.text(node.name).to_string();
             }
@@ -72,7 +76,11 @@ fn label_of(view: &View<'_>, index: u32) -> String {
 pub fn folding_ranges(view: &View<'_>) -> Value {
     let mut ranges = Vec::new();
 
-    for index in view.ast.nodes_of(NodeKind::Rule).chain(view.ast.nodes_of(NodeKind::AtRule)) {
+    for index in view
+        .ast
+        .nodes_of(NodeKind::Rule)
+        .chain(view.ast.nodes_of(NodeKind::AtRule))
+    {
         let span = view.ast.node(index).span;
         let start = view.lines.position(span.start).0;
         let end = view.lines.position(span.end).0;
@@ -134,7 +142,10 @@ fn token_of(node: &crate::ast::Node, offset: u32) -> Span {
 
 /// 追加一个区间；与前一项相等或不严格增大时跳过，保证严格包含。
 fn push(chain: &mut Vec<Span>, span: Span) {
-    if chain.last().is_some_and(|last| *last == span || span.end - span.start <= last.end - last.start) {
+    if chain
+        .last()
+        .is_some_and(|last| *last == span || span.end - span.start <= last.end - last.start)
+    {
         return;
     }
     chain.push(span);
@@ -156,13 +167,20 @@ mod tests {
         let mut child: Option<(u32, u32)> = None;
         loop {
             let range = &current["range"];
-            let start = view.lines.offset(range["start"]["line"].as_u64().unwrap() as u32,
-                range["start"]["character"].as_u64().unwrap() as u32);
-            let end = view.lines.offset(range["end"]["line"].as_u64().unwrap() as u32,
-                range["end"]["character"].as_u64().unwrap() as u32);
+            let start = view.lines.offset(
+                range["start"]["line"].as_u64().unwrap() as u32,
+                range["start"]["character"].as_u64().unwrap() as u32,
+            );
+            let end = view.lines.offset(
+                range["end"]["line"].as_u64().unwrap() as u32,
+                range["end"]["character"].as_u64().unwrap() as u32,
+            );
 
             if let Some((child_start, child_end)) = child {
-                assert!(start <= child_start && end >= child_end, "选择链必须单调包含");
+                assert!(
+                    start <= child_start && end >= child_end,
+                    "选择链必须单调包含"
+                );
             }
             child = Some((start as u32, end as u32));
             levels.push(view.source[start as usize..end as usize].to_string());
@@ -214,10 +232,14 @@ mod tests {
         let mut child: Option<(u32, u32)> = None;
         loop {
             let range = &current["range"];
-            let start = view.lines.offset(range["start"]["line"].as_u64().unwrap() as u32,
-                range["start"]["character"].as_u64().unwrap() as u32) as u32;
-            let end = view.lines.offset(range["end"]["line"].as_u64().unwrap() as u32,
-                range["end"]["character"].as_u64().unwrap() as u32) as u32;
+            let start = view.lines.offset(
+                range["start"]["line"].as_u64().unwrap() as u32,
+                range["start"]["character"].as_u64().unwrap() as u32,
+            ) as u32;
+            let end = view.lines.offset(
+                range["end"]["line"].as_u64().unwrap() as u32,
+                range["end"]["character"].as_u64().unwrap() as u32,
+            ) as u32;
             if let Some((child_start, child_end)) = child {
                 assert!(start <= child_start && end >= child_end);
             }
@@ -228,5 +250,4 @@ mod tests {
             }
         }
     }
-
 }

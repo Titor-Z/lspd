@@ -3,7 +3,7 @@
 //! 变量是纯文本作用域概念，直接按"名称边界匹配"找全部出现位置，
 //! 既覆盖声明与引用，也省掉一套作用域分析。
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::ast::NodeKind;
 use crate::data;
@@ -16,7 +16,9 @@ pub fn definition(view: &View<'_>, offset: u32, uri: &str) -> Value {
         return Value::Null;
     };
 
-    let Some(span) = declaration_span(view, &name).or_else(|| occurrences(view, &name).first().copied()) else {
+    let Some(span) =
+        declaration_span(view, &name).or_else(|| occurrences(view, &name).first().copied())
+    else {
         return Value::Null;
     };
 
@@ -29,8 +31,10 @@ pub fn references(view: &View<'_>, offset: u32, uri: &str) -> Value {
         return json!([]);
     };
 
-    let locations: Vec<Value> =
-        occurrences(view, &name).into_iter().map(|span| json!({ "uri": uri, "range": view.range(span) })).collect();
+    let locations: Vec<Value> = occurrences(view, &name)
+        .into_iter()
+        .map(|span| json!({ "uri": uri, "range": view.range(span) }))
+        .collect();
 
     Value::Array(locations)
 }
@@ -83,7 +87,10 @@ fn declaration_span(view: &View<'_>, name: &str) -> Option<Span> {
             continue;
         }
         let offset = text.len() - text.trim_start().len();
-        return Some(Span { start: node.name.start + offset as u32, end: node.name.start + offset as u32 + name.len() as u32 });
+        return Some(Span {
+            start: node.name.start + offset as u32,
+            end: node.name.start + offset as u32 + name.len() as u32,
+        });
     }
     None
 }

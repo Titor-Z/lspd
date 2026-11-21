@@ -24,6 +24,7 @@ lspd — 低内存多语言语言服务器（LSP over stdio）
   sass         Sass（缩进语法）
   json         JSON / JSONC
   md           Markdown
+  toml         TOML
 
 选项
   --stdio      使用标准输入输出，LSP 通用传输方式（默认，可省略）
@@ -53,6 +54,8 @@ enum Subcommand {
     Json,
     /// Markdown
     Md,
+    /// TOML
+    Toml,
 }
 
 impl Subcommand {
@@ -66,6 +69,7 @@ impl Subcommand {
             "sass" => Some(Self::Sass),
             "json" => Some(Self::Json),
             "md" => Some(Self::Md),
+            "toml" => Some(Self::Toml),
             _ => None,
         }
     }
@@ -74,12 +78,13 @@ impl Subcommand {
     fn required_features(self) -> &'static [&'static str] {
         match self {
             Self::Ts => &["ts"],
-            Self::Web => &["html", "css", "sass", "json"],
+            Self::Web => &["html", "css", "sass", "json", "toml"],
             Self::Html => &["html"],
             Self::Css => &["css"],
             Self::Sass => &["sass"],
             Self::Json => &["json"],
             Self::Md => &["md"],
+            Self::Toml => &["toml"],
         }
     }
 }
@@ -134,6 +139,7 @@ fn built_features() -> Vec<&'static str> {
         cfg!(feature = "sass").then_some("sass"),
         cfg!(feature = "json").then_some("json"),
         cfg!(feature = "md").then_some("md"),
+        cfg!(feature = "toml").then_some("toml"),
     ]
     .into_iter()
     .flatten()
@@ -161,6 +167,9 @@ fn backends() -> Vec<Box<dyn Backend>> {
 
     #[cfg(feature = "md")]
     list.push(lspd_md::backend());
+
+    #[cfg(feature = "toml")]
+    list.push(lspd_toml::backend());
 
     list.shrink_to_fit();
     list

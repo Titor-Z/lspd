@@ -11,7 +11,7 @@ use std::path::{Component, Path, PathBuf};
 
 use lspd_core::text::Span;
 
-use crate::parser::{self, Link, LinkKind, LinkDefinition};
+use crate::parser::{self, Link, LinkDefinition, LinkKind};
 
 /// 索引中的一个标题。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -486,7 +486,10 @@ mod tests {
         let (root, index) = workspace(
             "basic",
             &[
-                ("a.md", "# A\n\n见 [安装](./docs/安装.md#快速开始) 与 [[b]]。\n"),
+                (
+                    "a.md",
+                    "# A\n\n见 [安装](./docs/安装.md#快速开始) 与 [[b]]。\n",
+                ),
                 ("b.md", "# B\n"),
                 ("docs/安装.md", "# 安装\n\n## 快速开始\n"),
             ],
@@ -556,7 +559,10 @@ mod tests {
 
     #[test]
     fn normalize_collapses_dots_without_canonicalize() {
-        assert_eq!(normalize(PathBuf::from("/a/./b/../c")), PathBuf::from("/a/c"));
+        assert_eq!(
+            normalize(PathBuf::from("/a/./b/../c")),
+            PathBuf::from("/a/c")
+        );
         assert_eq!(normalize(PathBuf::from("../a")), PathBuf::from("../a"));
     }
 

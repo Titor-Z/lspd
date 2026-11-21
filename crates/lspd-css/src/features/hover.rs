@@ -1,6 +1,6 @@
 //! 悬停：属性、at 规则、伪类/伪元素、命名颜色的文档。
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::data;
 use crate::features::{View, word_at};
@@ -51,5 +51,8 @@ fn property_markdown(entry: &data::EntryData) -> String {
 fn trim_span(span: Span, text: &str) -> Span {
     let start = text.len() - text.trim_start().len();
     let end = span.start + text.trim_end().len() as u32;
-    Span { start: span.start + start as u32, end }
+    Span {
+        start: span.start + start as u32,
+        end,
+    }
 }

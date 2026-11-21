@@ -224,7 +224,10 @@ pub fn parse(source: &str) -> Parsed {
 
     // 快捷引用只有在定义表里存在对应标签时才算链接
     for (line, target_span, full_span, label) in shortcuts {
-        if definitions.iter().any(|definition| definition.label == label) {
+        if definitions
+            .iter()
+            .any(|definition| definition.label == label)
+        {
             links.push(Link {
                 target_span,
                 full_span,
@@ -328,7 +331,10 @@ fn paragraph_line(line: &str, is_definition: bool) -> bool {
         return false;
     }
 
-    let digits = trimmed.bytes().take_while(|byte| byte.is_ascii_digit()).count();
+    let digits = trimmed
+        .bytes()
+        .take_while(|byte| byte.is_ascii_digit())
+        .count();
     !(digits > 0 && trimmed[digits..].starts_with(". "))
 }
 
@@ -390,7 +396,12 @@ fn link_definition_at(line: &str) -> Option<(String, String, (usize, usize))> {
 ///
 /// 返回确定形式的链接，以及快捷引用候选（`[标签]`）——后者要等定义表收齐才能定性。
 /// 跳过行内代码（反引号包裹）内的伪链接，避免把文档里的示例当成真链接。
-fn link_targets(line: &str) -> (Vec<LinkTarget>, Vec<((usize, usize), (usize, usize), String)>) {
+fn link_targets(
+    line: &str,
+) -> (
+    Vec<LinkTarget>,
+    Vec<((usize, usize), (usize, usize), String)>,
+) {
     let bytes = line.as_bytes();
     let mut targets = Vec::new();
     let mut shortcuts = Vec::new();
@@ -681,8 +692,16 @@ mod tests {
     fn shortcut_references_require_definitions() {
         let with_definition = parse("[说明]\n\n[说明]: ./a.md\n");
         assert_eq!(with_definition.links.len(), 1);
-        assert_eq!(with_definition.links[0].kind, LinkKind::Reference("说明".into()));
-        assert_eq!(with_definition.links[0].target_span.text("[说明]\n\n[说明]: ./a.md\n"), "说明");
+        assert_eq!(
+            with_definition.links[0].kind,
+            LinkKind::Reference("说明".into())
+        );
+        assert_eq!(
+            with_definition.links[0]
+                .target_span
+                .text("[说明]\n\n[说明]: ./a.md\n"),
+            "说明"
+        );
 
         let without = parse("普通方括号 [不是链接]\n");
         assert!(without.links.is_empty());

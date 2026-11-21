@@ -20,8 +20,26 @@ mod level {
 
 /// SCSS 与 Less 专有的 at 规则，数据表里没有但合法。
 const DIALECT_AT_RULES: &[&str] = &[
-    "@include", "@mixin", "@if", "@else", "@each", "@for", "@while", "@function", "@return", "@extend", "@use",
-    "@forward", "@debug", "@warn", "@error", "@at-root", "@content", "@import", "@plugin", "@reference",
+    "@include",
+    "@mixin",
+    "@if",
+    "@else",
+    "@each",
+    "@for",
+    "@while",
+    "@function",
+    "@return",
+    "@extend",
+    "@use",
+    "@forward",
+    "@debug",
+    "@warn",
+    "@error",
+    "@at-root",
+    "@content",
+    "@import",
+    "@plugin",
+    "@reference",
 ];
 
 /// 汇总一份样式表的全部诊断。
@@ -43,7 +61,11 @@ pub fn collect(view: &View<'_>, structural: &[Diagnostic]) -> Vec<Value> {
         let node = view.ast.node(index);
         let name = view.text(node.name).trim();
 
-        if name.is_empty() || name.starts_with("--") || name.starts_with('$') || name.starts_with('@') {
+        if name.is_empty()
+            || name.starts_with("--")
+            || name.starts_with('$')
+            || name.starts_with('@')
+        {
             continue;
         }
         if data::is_known_property(name) {
@@ -51,7 +73,12 @@ pub fn collect(view: &View<'_>, structural: &[Diagnostic]) -> Vec<Value> {
         }
 
         let span = leading_trim(node.name, view.text(node.name));
-        diagnostics.push(diagnostic(view, span, level::WARNING, format!("未知属性 `{name}`")));
+        diagnostics.push(diagnostic(
+            view,
+            span,
+            level::WARNING,
+            format!("未知属性 `{name}`"),
+        ));
         if diagnostics.len() >= MAX_DIAGNOSTICS {
             return diagnostics;
         }
@@ -60,11 +87,19 @@ pub fn collect(view: &View<'_>, structural: &[Diagnostic]) -> Vec<Value> {
     for index in view.ast.nodes_of(NodeKind::AtRule) {
         let node = view.ast.node(index);
         let name = view.text(node.name).to_ascii_lowercase();
-        if name.is_empty() || data::at_rule(&name).is_some() || DIALECT_AT_RULES.contains(&name.as_str()) {
+        if name.is_empty()
+            || data::at_rule(&name).is_some()
+            || DIALECT_AT_RULES.contains(&name.as_str())
+        {
             continue;
         }
 
-        diagnostics.push(diagnostic(view, node.name, level::WARNING, format!("未知 at 规则 `{name}`")));
+        diagnostics.push(diagnostic(
+            view,
+            node.name,
+            level::WARNING,
+            format!("未知 at 规则 `{name}`"),
+        ));
         if diagnostics.len() >= MAX_DIAGNOSTICS {
             return diagnostics;
         }
@@ -76,5 +111,8 @@ pub fn collect(view: &View<'_>, structural: &[Diagnostic]) -> Vec<Value> {
 /// 去掉前导空白，避免诊断下划线画到空格上。
 fn leading_trim(span: lspd_core::text::Span, text: &str) -> lspd_core::text::Span {
     let offset = text.len() - text.trim_start().len();
-    lspd_core::text::Span { start: span.start + offset as u32, end: span.end }
+    lspd_core::text::Span {
+        start: span.start + offset as u32,
+        end: span.end,
+    }
 }

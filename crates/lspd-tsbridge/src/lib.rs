@@ -11,7 +11,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use tsrs_core::context::Context;
-use tsrs_vfs::{bundled, osvfs, FS};
+use tsrs_vfs::{FS, bundled, osvfs};
 
 /// 启动 TypeScript / JavaScript 语言服务器，返回进程退出码。
 ///
@@ -68,7 +68,10 @@ fn npm_install(cwd: &str, args: &[String]) -> Result<Vec<u8>, String> {
 
     match output {
         Ok(output) if output.status.success() => Ok(output.stdout),
-        Ok(output) => Err(format!("exit status {}", output.status.code().unwrap_or(-1))),
+        Ok(output) => Err(format!(
+            "exit status {}",
+            output.status.code().unwrap_or(-1)
+        )),
         Err(error) => Err(error.to_string()),
     }
 }

@@ -4,7 +4,7 @@
 //! 因此补全、悬停、诊断、跳转、选择区间等能力可直接复用 CSS 侧实现，本模块不重复一套逻辑。
 
 use lspd_core::text::Span;
-use lspd_css::ast::{Ast, Node, NodeKind, NONE};
+use lspd_css::ast::{Ast, NONE, Node, NodeKind};
 use lspd_css::data::is_known_property;
 use lspd_css::parser::{Diagnostic, ParseResult, Severity};
 
@@ -38,7 +38,12 @@ struct Parser<'a> {
 impl<'a> Parser<'a> {
     /// 建立解析器。
     fn new(source: &'a str) -> Self {
-        Self { source, ast: Ast::default(), stack: Vec::new(), diagnostics: Vec::new() }
+        Self {
+            source,
+            ast: Ast::default(),
+            stack: Vec::new(),
+            diagnostics: Vec::new(),
+        }
     }
 
     /// 执行解析。
@@ -47,7 +52,11 @@ impl<'a> Parser<'a> {
 
         for (index, line) in lines.iter().enumerate() {
             // 关闭缩进不小于本行的所有块：换行 + 退格即块结束
-            while self.stack.last().is_some_and(|&(top, _)| top >= line.indent) {
+            while self
+                .stack
+                .last()
+                .is_some_and(|&(top, _)| top >= line.indent)
+            {
                 let (_, node) = self.stack.pop().expect("刚检查过非空");
                 self.finish(node, line.content_start);
             }
@@ -61,16 +70,30 @@ impl<'a> Parser<'a> {
 
         self.close_unclosed();
         self.diagnostics.sort_by_key(|item| item.span.start);
-        ParseResult { ast: self.ast, diagnostics: self.diagnostics }
+        ParseResult {
+            ast: self.ast,
+            diagnostics: self.diagnostics,
+        }
     }
 
     /// 解析一条 at 规则：`@media screen`、`@import "a"` 等，作为块开启者入栈。
     fn open_at_rule(&mut self, line: &Line) {
         let at_start = line.content_start;
-        let name_len = 1 + line.content[1..].chars().take_while(|c| is_name_char(*c)).count();
+        let name_len = 1 + line.content[1..]
+            .chars()
+            .take_while(|c| is_name_char(*c))
+            .count();
         let name = Span::new(at_start, at_start + name_len);
-        let prelude = self.tight(Span::new(at_start + name_len, at_start + line.content.len()));
-        let index = self.push(NodeKind::AtRule, Span::new(at_start, at_start + line.content.len()), name, prelude);
+        let prelude = self.tight(Span::new(
+            at_start + name_len,
+            at_start + line.content.len(),
+        ));
+        let index = self.push(
+            NodeKind::AtRule,
+            Span::new(at_start, at_start + line.content.len()),
+            name,
+            prelude,
+        );
         self.stack.push((line.indent, index));
     }
 
@@ -82,7 +105,10 @@ impl<'a> Parser<'a> {
             // 无冒号行：已知属性 / 变量（正在输入、还没打冒号）当作叶子声明，使补全能给属性上下文；
             // 其余（元素 / 嵌套选择器）作为块开启者。
             let content_text = &self.source[line.content_start..content_end];
-            if is_known_property(content_text) || content_text.starts_with("--") || content_text.starts_with('$') {
+            if is_known_property(content_text)
+                || content_text.starts_with("--")
+                || content_text.starts_with('$')
+            {
                 let name = Span::new(line.content_start, content_end);
                 let node = self.push(NodeKind::Declaration, name, name, Span::default());
                 self.finish(node, content_end);
@@ -94,7 +120,10 @@ impl<'a> Parser<'a> {
 
         let name = self.tight(Span::new(line.content_start, colon));
         let name_text = name.text(self.source);
-        let parent_is_rule = self.stack.last().is_some_and(|&(_, node)| self.ast.node(node).kind == NodeKind::Rule);
+        let parent_is_rule = self
+            .stack
+            .last()
+            .is_some_and(|&(_, node)| self.ast.node(node).kind == NodeKind::Rule);
 
         // 是否是一条声明：已知属性 / 自定义属性一定算；
         // 未知名只有在"不是块开启者"时才当作声明（拼错的属性），
@@ -102,7 +131,9 @@ impl<'a> Parser<'a> {
         let is_declaration = is_known_property(name_text)
             || name_text.starts_with("--")
             || name_text.starts_with('$')
-            || (parent_is_rule && is_simple_ident(name_text) && !peek_deeper(lines, index, line.indent));
+            || (parent_is_rule
+                && is_simple_ident(name_text)
+                && !peek_deeper(lines, index, line.indent));
 
         if !is_declaration {
             self.open_rule(line, content_end);
@@ -110,19 +141,32 @@ impl<'a> Parser<'a> {
         }
 
         let value = self.tight(Span::new(colon + 1, content_end));
-        let node = self.push(NodeKind::Declaration, Span::new(line.content_start, content_end), name, value);
+        let node = self.push(
+            NodeKind::Declaration,
+            Span::new(line.content_start, content_end),
+            name,
+            value,
+        );
         self.finish(node, content_end);
 
         if value.is_empty() {
-            self.diagnostics
-                .push(Diagnostic { span: name, severity: Severity::Warning, message: format!("`{name_text}` 缺少值") });
+            self.diagnostics.push(Diagnostic {
+                span: name,
+                severity: Severity::Warning,
+                message: format!("`{name_text}` 缺少值"),
+            });
         }
     }
 
     /// 打开一个选择器块。
     fn open_rule(&mut self, line: &Line, content_end: usize) {
         let name = self.tight(Span::new(line.content_start, content_end));
-        let index = self.push(NodeKind::Rule, Span::new(line.content_start, content_end), name, Span::default());
+        let index = self.push(
+            NodeKind::Rule,
+            Span::new(line.content_start, content_end),
+            name,
+            Span::default(),
+        );
         self.stack.push((line.indent, index));
     }
 
@@ -139,7 +183,10 @@ impl<'a> Parser<'a> {
         let text = span.text(self.source);
         let leading = text.len() - text.trim_start().len();
         let trailing = text.len() - text.trim_end().len();
-        Span::new(span.start as usize + leading, (span.end as usize).saturating_sub(trailing))
+        Span::new(
+            span.start as usize + leading,
+            (span.end as usize).saturating_sub(trailing),
+        )
     }
 
     /// 补全区间并记录子树结束。
@@ -210,7 +257,10 @@ fn preprocess(source: &str) -> Vec<Line> {
 
 /// 下一行（跳过空行与注释）是否比当前更深：更深说明当前行开启了嵌套块。
 fn peek_deeper(lines: &[Line], index: usize, indent: usize) -> bool {
-    lines[index + 1..].iter().find(|next| !next.content.is_empty()).is_some_and(|next| next.indent > indent)
+    lines[index + 1..]
+        .iter()
+        .find(|next| !next.content.is_empty())
+        .is_some_and(|next| next.indent > indent)
 }
 
 /// 在 `start..end` 内找到括号与字符串之外的首个冒号，返回绝对字节偏移。
@@ -261,7 +311,9 @@ fn is_name_char(c: char) -> bool {
 fn is_simple_ident(text: &str) -> bool {
     !text.is_empty()
         && text.starts_with(|c: char| c.is_ascii_alphabetic() || c == '-')
-        && text.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_'))
+        && text
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_'))
 }
 
 #[cfg(test)]
@@ -287,7 +339,10 @@ mod tests {
         let source = "color: red";
         let result = parse(source);
         assert_eq!(result.ast.roots.len(), 1);
-        assert_eq!(result.ast.node(result.ast.roots[0]).kind, NodeKind::Declaration);
+        assert_eq!(
+            result.ast.node(result.ast.roots[0]).kind,
+            NodeKind::Declaration
+        );
     }
 
     /// 规则块内拼错的属性名当作声明，使未知属性诊断仍能触发。
@@ -330,7 +385,11 @@ mod tests {
             let result = parse(source);
             let rule = result.ast.roots[0];
             let decl = result.ast.children(rule).next().unwrap();
-            assert_eq!(result.ast.node(decl).value.text(source), "red", "原文：{source}");
+            assert_eq!(
+                result.ast.node(decl).value.text(source),
+                "red",
+                "原文：{source}"
+            );
         }
     }
 

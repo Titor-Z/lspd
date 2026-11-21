@@ -96,7 +96,10 @@ pub fn parse(source: &str) -> ParseResult {
 pub fn parse_with(source: &str, dialect: Dialect) -> ParseResult {
     let mut parser = Parser::new(source, dialect);
     let value = parser.parse_document();
-    ParseResult { value, diagnostics: parser.diagnostics }
+    ParseResult {
+        value,
+        diagnostics: parser.diagnostics,
+    }
 }
 
 /// 单文档解析器。
@@ -116,7 +119,13 @@ struct Parser<'a> {
 impl<'a> Parser<'a> {
     /// 建立解析器。
     fn new(source: &'a str, dialect: Dialect) -> Self {
-        Self { source, bytes: source.as_bytes(), position: 0, dialect, diagnostics: Vec::new() }
+        Self {
+            source,
+            bytes: source.as_bytes(),
+            position: 0,
+            dialect,
+            diagnostics: Vec::new(),
+        }
     }
 
     /// 解析整篇文档：一个值，之后不容许多余内容。
@@ -124,14 +133,19 @@ impl<'a> Parser<'a> {
         self.skip_trivia();
 
         if self.eof() {
-            return Value::Null { span: Span::new(self.position, self.position) };
+            return Value::Null {
+                span: Span::new(self.position, self.position),
+            };
         }
 
         let value = self.parse_value();
         self.skip_trivia();
 
         if !self.eof() {
-            self.error(Span::new(self.position, self.bytes.len()), "文档尾部有多余内容");
+            self.error(
+                Span::new(self.position, self.bytes.len()),
+                "文档尾部有多余内容",
+            );
         }
 
         value
@@ -143,7 +157,9 @@ impl<'a> Parser<'a> {
 
         if self.eof() {
             self.error(Span::new(self.position, self.position), "缺少值");
-            return Value::Null { span: Span::new(self.position, self.position) };
+            return Value::Null {
+                span: Span::new(self.position, self.position),
+            };
         }
 
         match self.bytes[self.position] {
@@ -153,15 +169,25 @@ impl<'a> Parser<'a> {
                 let (span, content) = self.parse_string();
                 Value::String { span, content }
             }
-            b't' => Value::Bool { span: self.parse_word("true"), value: true },
-            b'f' => Value::Bool { span: self.parse_word("false"), value: false },
-            b'n' => Value::Null { span: self.parse_word("null") },
+            b't' => Value::Bool {
+                span: self.parse_word("true"),
+                value: true,
+            },
+            b'f' => Value::Bool {
+                span: self.parse_word("false"),
+                value: false,
+            },
+            b'n' => Value::Null {
+                span: self.parse_word("null"),
+            },
             byte if byte == b'-' || byte.is_ascii_digit() => self.parse_number(),
             _ => {
                 let start = self.position;
                 self.position += 1;
                 self.error(Span::new(start, self.position), "意外的字符");
-                Value::Null { span: Span::new(start, start) }
+                Value::Null {
+                    span: Span::new(start, start),
+                }
             }
         }
     }
@@ -186,7 +212,10 @@ impl<'a> Parser<'a> {
             }
 
             if self.peek() != b'"' {
-                self.error(Span::new(self.position, self.position + 1), "键必须用双引号");
+                self.error(
+                    Span::new(self.position, self.position + 1),
+                    "键必须用双引号",
+                );
                 self.skip_to_member_boundary();
                 if !self.at_object_end() {
                     self.position += 1; // 跳过分隔的 `,`
@@ -205,7 +234,11 @@ impl<'a> Parser<'a> {
             }
 
             let value = self.parse_value();
-            members.push(Member { key: key_span, key_name, value });
+            members.push(Member {
+                key: key_span,
+                key_name,
+                value,
+            });
 
             self.skip_trivia();
             match self.peek() {
@@ -234,7 +267,10 @@ impl<'a> Parser<'a> {
             }
         }
 
-        Value::Object { span: Span::new(start, self.position), members }
+        Value::Object {
+            span: Span::new(start, self.position),
+            members,
+        }
     }
 
     /// 解析数组。
@@ -286,7 +322,10 @@ impl<'a> Parser<'a> {
             }
         }
 
-        Value::Array { span: Span::new(start, self.position), items }
+        Value::Array {
+            span: Span::new(start, self.position),
+            items,
+        }
     }
 
     /// 解析字符串，返回整体区间与内部内容区间。
@@ -309,19 +348,28 @@ impl<'a> Parser<'a> {
                 b'"' => {
                     let content_end = self.position;
                     self.position += 1; // 闭引号
-                    return (Span::new(start, self.position), Span::new(content_start, content_end));
+                    return (
+                        Span::new(start, self.position),
+                        Span::new(content_start, content_end),
+                    );
                 }
                 b'\n' => {
                     self.error(Span::new(start, self.position), "未闭合的字符串");
                     self.position += 1;
-                    return (Span::new(start, self.position), Span::new(content_start, content_start));
+                    return (
+                        Span::new(start, self.position),
+                        Span::new(content_start, content_start),
+                    );
                 }
                 _ => self.position += 1,
             }
         }
 
         self.error(Span::new(start, self.position), "未闭合的字符串");
-        (Span::new(start, self.position), Span::new(content_start, self.position))
+        (
+            Span::new(start, self.position),
+            Span::new(content_start, self.position),
+        )
     }
 
     /// 校验 `true` / `false` / `null` 字面量，返回其区间；不符时跳到边界以免死循环。
@@ -341,7 +389,12 @@ impl<'a> Parser<'a> {
     /// 解析数字。
     fn parse_number(&mut self) -> Value {
         let start = self.position;
-        while !self.eof() && matches!(self.bytes[self.position], b'-' | b'+' | b'0'..=b'9' | b'.' | b'e' | b'E') {
+        while !self.eof()
+            && matches!(
+                self.bytes[self.position],
+                b'-' | b'+' | b'0'..=b'9' | b'.' | b'e' | b'E'
+            )
+        {
             self.position += 1;
         }
 
@@ -391,7 +444,9 @@ impl<'a> Parser<'a> {
         self.position += 2;
 
         if block {
-            while !self.eof() && !(self.peek() == b'*' && self.bytes.get(self.position + 1) == Some(&b'/')) {
+            while !self.eof()
+                && !(self.peek() == b'*' && self.bytes.get(self.position + 1) == Some(&b'/'))
+            {
                 self.position += 1;
             }
 
@@ -408,7 +463,10 @@ impl<'a> Parser<'a> {
         }
 
         if self.dialect == Dialect::Json {
-            self.warn(Span::new(start, self.position), "标准 JSON 不支持注释，已按 JSONC 解析");
+            self.warn(
+                Span::new(start, self.position),
+                "标准 JSON 不支持注释，已按 JSONC 解析",
+            );
         }
     }
 
@@ -438,12 +496,20 @@ impl<'a> Parser<'a> {
 
     /// 记录错误。
     fn error(&mut self, span: Span, message: impl Into<String>) {
-        self.diagnostics.push(Diagnostic { span, severity: Severity::Error, message: message.into() });
+        self.diagnostics.push(Diagnostic {
+            span,
+            severity: Severity::Error,
+            message: message.into(),
+        });
     }
 
     /// 记录警告。
     fn warn(&mut self, span: Span, message: impl Into<String>) {
-        self.diagnostics.push(Diagnostic { span, severity: Severity::Warning, message: message.into() });
+        self.diagnostics.push(Diagnostic {
+            span,
+            severity: Severity::Warning,
+            message: message.into(),
+        });
     }
 }
 
@@ -470,9 +536,10 @@ pub fn decode_string(source: &str, content: Span) -> String {
             Some('u') => {
                 let hex: String = chars.by_ref().take(4).collect();
                 if let Ok(code) = u32::from_str_radix(&hex, 16)
-                    && let Some(ch) = char::from_u32(code) {
-                        out.push(ch);
-                    }
+                    && let Some(ch) = char::from_u32(code)
+                {
+                    out.push(ch);
+                }
             }
             Some(other) => out.push(other),
             None => {}
@@ -543,12 +610,24 @@ mod tests {
     #[test]
     fn parses_valid_document() {
         let result = parse(r#"{ "a": 1, "b": [true, null] }"#);
-        assert!(result.diagnostics.is_empty(), "诊断：{:?}", result.diagnostics.iter().map(|d| &d.message).collect::<Vec<_>>());
+        assert!(
+            result.diagnostics.is_empty(),
+            "诊断：{:?}",
+            result
+                .diagnostics
+                .iter()
+                .map(|d| &d.message)
+                .collect::<Vec<_>>()
+        );
 
-        let Value::Object { members, .. } = result.value else { panic!("根应为对象") };
+        let Value::Object { members, .. } = result.value else {
+            panic!("根应为对象")
+        };
         assert_eq!(members.len(), 2);
         assert_eq!(members[0].key_name, "a");
-        let Value::Array { items, .. } = &members[1].value else { panic!("b 应为数组") };
+        let Value::Array { items, .. } = &members[1].value else {
+            panic!("b 应为数组")
+        };
         assert_eq!(items.len(), 2);
     }
 
@@ -556,36 +635,68 @@ mod tests {
     #[test]
     fn flags_trailing_comma() {
         let result = parse(r#"{ "a": 1, }"#);
-        assert!(result.diagnostics.iter().any(|d| d.message.contains("尾随逗号")));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.message.contains("尾随逗号"))
+        );
     }
 
     /// 缺冒号与未闭合都应被记录。
     #[test]
     fn flags_missing_colon_and_unclosed() {
         let result = parse(r#"{ "a" 1 "#);
-        assert!(result.diagnostics.iter().any(|d| d.message.contains("缺少 `:`")));
-        assert!(result.diagnostics.iter().any(|d| d.message.contains("未闭合")));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.message.contains("缺少 `:`"))
+        );
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.message.contains("未闭合"))
+        );
     }
 
     /// 数组元素间缺逗号应报错。
     #[test]
     fn flags_missing_comma_in_array() {
         let result = parse("[1 2]");
-        assert!(result.diagnostics.iter().any(|d| d.message.contains("缺少 `,`")));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.message.contains("缺少 `,`"))
+        );
     }
 
     /// 未闭合字符串应报错且不吞掉解析。
     #[test]
     fn flags_unterminated_string() {
         let result = parse(r#"{ "a": "abc }"#);
-        assert!(result.diagnostics.iter().any(|d| d.message.contains("未闭合的字符串")));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.message.contains("未闭合的字符串"))
+        );
     }
 
     /// 非法数字应报错。
     #[test]
     fn flags_invalid_number() {
         let result = parse("[01, 1., +2]");
-        assert!(result.diagnostics.iter().filter(|d| d.message.contains("非法的数字")).count() >= 2);
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .filter(|d| d.message.contains("非法的数字"))
+                .count()
+                >= 2
+        );
     }
 
     /// JSONC 下注释应被吞掉，值树照常完整。
@@ -599,9 +710,19 @@ mod tests {
             "b": [2, 3] // 行尾注释
         }"#;
         let result = parse_with(source, Dialect::Jsonc);
-        assert!(result.diagnostics.is_empty(), "诊断：{:?}", result.diagnostics.iter().map(|d| &d.message).collect::<Vec<_>>());
+        assert!(
+            result.diagnostics.is_empty(),
+            "诊断：{:?}",
+            result
+                .diagnostics
+                .iter()
+                .map(|d| &d.message)
+                .collect::<Vec<_>>()
+        );
 
-        let Value::Object { members, .. } = result.value else { panic!("根应为对象") };
+        let Value::Object { members, .. } = result.value else {
+            panic!("根应为对象")
+        };
         assert_eq!(members.len(), 2);
     }
 
@@ -617,9 +738,22 @@ mod tests {
     /// JSONC 允许尾随逗号，标准 JSON 仍提示。
     #[test]
     fn trailing_comma_only_in_strict_json() {
-        assert!(parse_with(r#"{ "a": 1, }"#, Dialect::Jsonc).diagnostics.is_empty());
-        assert!(parse_with("[1, 2, ]", Dialect::Jsonc).diagnostics.is_empty());
-        assert!(parse_with(r#"{ "a": 1, }"#, Dialect::Json).diagnostics.iter().any(|d| d.message.contains("尾随逗号")));
+        assert!(
+            parse_with(r#"{ "a": 1, }"#, Dialect::Jsonc)
+                .diagnostics
+                .is_empty()
+        );
+        assert!(
+            parse_with("[1, 2, ]", Dialect::Jsonc)
+                .diagnostics
+                .is_empty()
+        );
+        assert!(
+            parse_with(r#"{ "a": 1, }"#, Dialect::Json)
+                .diagnostics
+                .iter()
+                .any(|d| d.message.contains("尾随逗号"))
+        );
     }
 
     /// 字符串里的 `//` 与 `/*` 不是注释。
@@ -627,7 +761,15 @@ mod tests {
     fn keeps_slashes_inside_strings() {
         for dialect in [Dialect::Json, Dialect::Jsonc] {
             let result = parse_with(r#"{ "url": "http://x/*y*/" }"#, dialect);
-            assert!(result.diagnostics.is_empty(), "诊断：{:?}", result.diagnostics.iter().map(|d| &d.message).collect::<Vec<_>>());
+            assert!(
+                result.diagnostics.is_empty(),
+                "诊断：{:?}",
+                result
+                    .diagnostics
+                    .iter()
+                    .map(|d| &d.message)
+                    .collect::<Vec<_>>()
+            );
         }
     }
 
@@ -635,13 +777,20 @@ mod tests {
     #[test]
     fn flags_unterminated_block_comment() {
         let result = parse_with("{ /* 没有结束", Dialect::Jsonc);
-        assert!(result.diagnostics.iter().any(|d| d.message.contains("未闭合的 `/*`")));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.message.contains("未闭合的 `/*`"))
+        );
     }
 
     /// 解析器不应因坏输入死循环：各种残缺输入都要收敛。
     #[test]
     fn always_terminates() {
-        for source in ["{", "[", "{\"a\"", "[1,", "\"abc", "tru", "1 2", "{,}", "[,]"] {
+        for source in [
+            "{", "[", "{\"a\"", "[1,", "\"abc", "tru", "1 2", "{,}", "[,]",
+        ] {
             let _ = parse(source);
         }
     }

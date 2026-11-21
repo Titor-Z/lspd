@@ -52,7 +52,9 @@ struct ParseCache {
 impl JsonBackend {
     /// 确保当前文档已解析并加载 schema，必要时重做。
     fn ensure(&mut self, document: &Document) {
-        let fresh = self.cache.as_ref().is_some_and(|cache| cache.uri == document.uri() && cache.version == document.version());
+        let fresh = self.cache.as_ref().is_some_and(|cache| {
+            cache.uri == document.uri() && cache.version == document.version()
+        });
 
         if fresh {
             return;
@@ -74,10 +76,20 @@ impl JsonBackend {
 
         let cache = self.cache.as_ref().expect("刚写入缓存");
         let lines = LineIndex::new(document.text());
-        let mut items: Vec<Value> = cache.parsed.diagnostics.iter().map(|item| diagnostic(&lines, item)).collect();
+        let mut items: Vec<Value> = cache
+            .parsed
+            .diagnostics
+            .iter()
+            .map(|item| diagnostic(&lines, item))
+            .collect();
 
         if let Some(schema) = &cache.schema {
-            items.extend(schema::validate(document.text(), &cache.parsed.value, schema, &lines));
+            items.extend(schema::validate(
+                document.text(),
+                &cache.parsed.value,
+                schema,
+                &lines,
+            ));
         }
 
         out.push(Outgoing::notify(
@@ -151,7 +163,12 @@ impl Backend for JsonBackend {
                 let cache = self.cache.as_ref().expect("刚写入缓存");
                 let offset = document.offset_at(params.position) as u32;
 
-                let items = schema::completion(document.text(), &cache.parsed.value, cache.schema.as_ref(), offset);
+                let items = schema::completion(
+                    document.text(),
+                    &cache.parsed.value,
+                    cache.schema.as_ref(),
+                    offset,
+                );
                 Some(Ok(json!({ "isIncomplete": false, "items": items })))
             }
             "textDocument/hover" => {
@@ -258,11 +275,26 @@ fn range(lines: &LineIndex<'_>, span: Span) -> Value {
 /// 生成文档大纲：根为对象/数组的成员，标量根给单个符号。
 fn document_symbols(root: &Json, lines: &LineIndex<'_>) -> Value {
     let symbols: Vec<Value> = match root {
-        Json::Object { members, .. } => {
-            members.iter().map(|member| symbol(&member.key_name, member.key, KIND_PROPERTY, &member.value, lines)).collect()
-        }
+        Json::Object { members, .. } => members
+            .iter()
+            .map(|member| {
+                symbol(
+                    &member.key_name,
+                    member.key,
+                    KIND_PROPERTY,
+                    &member.value,
+                    lines,
+                )
+            })
+            .collect(),
         Json::Array { items, .. } => container_symbols(items, lines),
-        scalar => vec![symbol("<value>", scalar.span(), kind_of(scalar), scalar, lines)],
+        scalar => vec![symbol(
+            "<value>",
+            scalar.span(),
+            kind_of(scalar),
+            scalar,
+            lines,
+        )],
     };
     Value::Array(symbols)
 }
@@ -270,9 +302,18 @@ fn document_symbols(root: &Json, lines: &LineIndex<'_>) -> Value {
 /// 构造一个符号，递归携带子节点。
 fn symbol(name: &str, selection: Span, kind: u8, value: &Json, lines: &LineIndex<'_>) -> Value {
     let children: Vec<Value> = match value {
-        Json::Object { members, .. } => {
-            members.iter().map(|member| symbol(&member.key_name, member.key, KIND_PROPERTY, &member.value, lines)).collect()
-        }
+        Json::Object { members, .. } => members
+            .iter()
+            .map(|member| {
+                symbol(
+                    &member.key_name,
+                    member.key,
+                    KIND_PROPERTY,
+                    &member.value,
+                    lines,
+                )
+            })
+            .collect(),
         Json::Array { items, .. } => container_symbols(items, lines),
         _ => Vec::new(),
     };
@@ -318,7 +359,13 @@ fn folding_ranges(root: &Json, lines: &LineIndex<'_>) -> Value {
 /// 递归收集容器节点的折叠区间。
 fn collect_folds(value: &Json, lines: &LineIndex<'_>, ranges: &mut Vec<Value>) {
     let (span, children) = match value {
-        Json::Object { span, members } => (*span, members.iter().map(|member| &member.value).collect::<Vec<_>>()),
+        Json::Object { span, members } => (
+            *span,
+            members
+                .iter()
+                .map(|member| &member.value)
+                .collect::<Vec<_>>(),
+        ),
         Json::Array { span, items } => (*span, items.iter().collect::<Vec<_>>()),
         _ => return,
     };
@@ -373,8 +420,14 @@ mod tests {
     /// 语言标识为 jsonc 时一律按 JSONC 解析。
     #[test]
     fn honors_jsonc_language_id() {
-        assert_eq!(dialect_of(&document("file:///p/data.json", "jsonc")), parser::Dialect::Jsonc);
-        assert_eq!(dialect_of(&document("file:///p/data.json", "json")), parser::Dialect::Json);
+        assert_eq!(
+            dialect_of(&document("file:///p/data.json", "jsonc")),
+            parser::Dialect::Jsonc
+        );
+        assert_eq!(
+            dialect_of(&document("file:///p/data.json", "json")),
+            parser::Dialect::Json
+        );
     }
 
     /// 可注释文件族即使被报成 json 也按 JSONC 解析。
@@ -395,7 +448,11 @@ mod tests {
     /// 普通 JSON 不应被误判为 JSONC。
     #[test]
     fn keeps_plain_json_strict() {
-        for uri in ["file:///p/package.json", "file:///p/tsconfig.yaml", "file:///p/data.json"] {
+        for uri in [
+            "file:///p/package.json",
+            "file:///p/tsconfig.yaml",
+            "file:///p/data.json",
+        ] {
             assert!(!is_comment_friendly(uri), "{uri} 不应识别为 JSONC");
         }
     }

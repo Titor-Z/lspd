@@ -27,7 +27,10 @@ pub fn pseudo_element(name: &str) -> Option<&'static EntryData> {
 
 /// 按名称查命名颜色。
 pub fn named_color(name: &str) -> Option<&'static ColorData> {
-    NAMED_COLORS.binary_search_by(|entry| entry.name.cmp(name)).ok().map(|index| &NAMED_COLORS[index])
+    NAMED_COLORS
+        .binary_search_by(|entry| entry.name.cmp(name))
+        .ok()
+        .map(|index| &NAMED_COLORS[index])
 }
 
 /// 属性是否合法。带厂商前缀时按去前缀后的名称判断。
@@ -45,12 +48,17 @@ pub fn is_known_property(name: &str) -> bool {
 
 /// 去掉厂商前缀。
 fn strip_vendor_prefix(name: &str) -> Option<&str> {
-    ["-webkit-", "-moz-", "-ms-", "-o-"].iter().find_map(|prefix| name.strip_prefix(prefix))
+    ["-webkit-", "-moz-", "-ms-", "-o-"]
+        .iter()
+        .find_map(|prefix| name.strip_prefix(prefix))
 }
 
 /// 二分查找数据项。
 fn lookup(table: &'static [EntryData], name: &str) -> Option<&'static EntryData> {
-    table.binary_search_by(|entry| entry.name.cmp(name)).ok().map(|index| &table[index])
+    table
+        .binary_search_by(|entry| entry.name.cmp(name))
+        .ok()
+        .map(|index| &table[index])
 }
 
 #[cfg(test)]

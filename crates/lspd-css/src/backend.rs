@@ -10,7 +10,7 @@ use lspd_core::text::{LineIndex, Span};
 use lspd_core::{Backend, Outgoing, ResponseError};
 use serde::Deserialize;
 use serde_json::value::RawValue;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::dialect::Dialect;
 use crate::features::{View, color, completion, diagnostics, hover, navigation, symbols};
@@ -68,14 +68,22 @@ impl StyleBackend {
         file_extensions: &'static [&'static str],
         parse: ParseFn,
     ) -> Self {
-        Self { name, language_ids, file_extensions, parse, cache: None }
+        Self {
+            name,
+            language_ids,
+            file_extensions,
+            parse,
+            cache: None,
+        }
     }
 
     /// 取当前文档的解析结果，必要时重新解析。
     fn parsed(&mut self, document: &Document) -> &ParseResult {
         let language_id = document.language_id();
         let fresh = self.cache.as_ref().is_some_and(|cache| {
-            cache.uri == document.uri() && cache.version == document.version() && cache.language_id == language_id
+            cache.uri == document.uri()
+                && cache.version == document.version()
+                && cache.language_id == language_id
         });
 
         if !fresh {
@@ -170,14 +178,22 @@ impl Backend for StyleBackend {
 
                 let result = match method {
                     "textDocument/hover" => hover::hover(&view, offset)?,
-                    "textDocument/completion" => completion::complete(&view, offset, document.language_id()),
-                    "textDocument/definition" => navigation::definition(&view, offset, document.uri()),
-                    "textDocument/references" => navigation::references(&view, offset, document.uri()),
+                    "textDocument/completion" => {
+                        completion::complete(&view, offset, document.language_id())
+                    }
+                    "textDocument/definition" => {
+                        navigation::definition(&view, offset, document.uri())
+                    }
+                    "textDocument/references" => {
+                        navigation::references(&view, offset, document.uri())
+                    }
                     _ => navigation::prepare_rename(&view, offset)?,
                 };
                 Some(Ok(result))
             }
-            "textDocument/documentSymbol" | "textDocument/foldingRange" | "textDocument/documentColor" => {
+            "textDocument/documentSymbol"
+            | "textDocument/foldingRange"
+            | "textDocument/documentColor" => {
                 let params: DocumentParams = parse_params(params)?;
                 let document = documents.get(&params.text_document.uri)?;
 
@@ -203,7 +219,9 @@ impl Backend for StyleBackend {
                 let ranges = params
                     .positions
                     .iter()
-                    .map(|position| symbols::selection_range(&view, document.offset_at(*position) as u32))
+                    .map(|position| {
+                        symbols::selection_range(&view, document.offset_at(*position) as u32)
+                    })
                     .collect::<Vec<_>>();
                 Some(Ok(Value::Array(ranges)))
             }
@@ -230,7 +248,12 @@ impl Backend for StyleBackend {
                 let parsed = self.parsed(document);
                 let lines = LineIndex::new(document.text());
                 let view = View::new(document.text(), &parsed.ast, &lines);
-                Some(Ok(navigation::rename(&view, offset, document.uri(), &params.new_name)))
+                Some(Ok(navigation::rename(
+                    &view,
+                    offset,
+                    document.uri(),
+                    &params.new_name,
+                )))
             }
             // 不认识的方法交还核心层，由其他后端或统一的「方法不存在」应答处理
             _ => None,
@@ -309,7 +332,12 @@ struct ColorValue {
 
 impl From<&ColorValue> for color::Rgba {
     fn from(value: &ColorValue) -> Self {
-        Self { red: value.red, green: value.green, blue: value.blue, alpha: value.alpha }
+        Self {
+            red: value.red,
+            green: value.green,
+            blue: value.blue,
+            alpha: value.alpha,
+        }
     }
 }
 

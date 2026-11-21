@@ -64,7 +64,10 @@ impl Ast {
 
     /// 遍历某个节点的直接子节点。
     pub fn children(&self, index: u32) -> ChildIter<'_> {
-        ChildIter { ast: self, next: self.node(index).first_child }
+        ChildIter {
+            ast: self,
+            next: self.node(index).first_child,
+        }
     }
 
     /// 按文档顺序遍历指定类型的节点。

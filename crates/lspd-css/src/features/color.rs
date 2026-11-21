@@ -1,6 +1,6 @@
 //! 颜色提供者：识别声明值里的十六进制与命名颜色，并给出多种表示法。
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::ast::NodeKind;
 use crate::data;
@@ -82,7 +82,8 @@ fn read_hex(text: &[u8]) -> (usize, Option<Rgba>) {
         length += 1;
     }
 
-    let parse = |pair: &[u8]| u8::from_str_radix(std::str::from_utf8(pair).unwrap_or("0"), 16).unwrap_or(0);
+    let parse =
+        |pair: &[u8]| u8::from_str_radix(std::str::from_utf8(pair).unwrap_or("0"), 16).unwrap_or(0);
     let unit = |byte: u8| byte as f64 / 255.0;
 
     let color = match length {
@@ -91,15 +92,33 @@ fn read_hex(text: &[u8]) -> (usize, Option<Rgba>) {
             let red = expand(parse(&text[0..1]));
             let green = expand(parse(&text[1..2]));
             let blue = expand(parse(&text[2..3]));
-            let alpha = if length == 4 { unit(expand(parse(&text[3..4]))) } else { 1.0 };
-            Some(Rgba { red: unit(red), green: unit(green), blue: unit(blue), alpha })
+            let alpha = if length == 4 {
+                unit(expand(parse(&text[3..4])))
+            } else {
+                1.0
+            };
+            Some(Rgba {
+                red: unit(red),
+                green: unit(green),
+                blue: unit(blue),
+                alpha,
+            })
         }
         6 | 8 => {
             let red = parse(&text[0..2]);
             let green = parse(&text[2..4]);
             let blue = parse(&text[4..6]);
-            let alpha = if length == 8 { unit(parse(&text[6..8])) } else { 1.0 };
-            Some(Rgba { red: unit(red), green: unit(green), blue: unit(blue), alpha })
+            let alpha = if length == 8 {
+                unit(parse(&text[6..8]))
+            } else {
+                1.0
+            };
+            Some(Rgba {
+                red: unit(red),
+                green: unit(green),
+                blue: unit(blue),
+                alpha,
+            })
         }
         _ => None,
     };
@@ -151,7 +170,11 @@ fn to_channel(value: f64) -> u8 {
 
 /// 转成 `hsl()` 表示。
 fn to_hsl(red: u8, green: u8, blue: u8, alpha: f64) -> String {
-    let (r, g, b) = (red as f64 / 255.0, green as f64 / 255.0, blue as f64 / 255.0);
+    let (r, g, b) = (
+        red as f64 / 255.0,
+        green as f64 / 255.0,
+        blue as f64 / 255.0,
+    );
     let max = r.max(g).max(b);
     let min = r.min(g).min(b);
     let lightness = (max + min) / 2.0;
