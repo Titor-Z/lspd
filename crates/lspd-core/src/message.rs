@@ -63,6 +63,15 @@ pub enum Outgoing {
         /// 参数
         params: Value,
     },
+    /// 服务端主动请求，如动态注册文件监听、申请工作区配置
+    Request {
+        /// 请求标识，由服务端自行保证唯一
+        id: Id,
+        /// 方法名
+        method: String,
+        /// 参数
+        params: Value,
+    },
 }
 
 impl Outgoing {
@@ -89,6 +98,15 @@ impl Outgoing {
     /// 构造通知。
     pub fn notify(method: impl Into<String>, params: Value) -> Self {
         Self::Notification {
+            method: method.into(),
+            params,
+        }
+    }
+
+    /// 构造服务端主动请求。
+    pub fn request(id: Id, method: impl Into<String>, params: Value) -> Self {
+        Self::Request {
+            id,
             method: method.into(),
             params,
         }

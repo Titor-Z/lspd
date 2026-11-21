@@ -93,7 +93,10 @@ impl Server {
             "exit" => return Action::Exit(self.exit_code_on_eof()),
             "textDocument/didOpen" => self.on_did_open(params, out),
             "textDocument/didChange" => self.on_did_change(params, out),
+            "textDocument/didSave" => self.on_did_save(params, out),
             "textDocument/didClose" => self.on_did_close(params, out),
+            "initialized" => self.on_initialized(out),
+            "workspace/didChangeWatchedFiles" => self.on_watched_files(params, out),
             // initialized / $/cancelRequest / $/setTrace 等：单线程事件循环下无需处理
             _ => {}
         }
@@ -274,6 +277,35 @@ impl Server {
         };
         let backend = &mut self.backends[index];
         backend.did_change(document, out);
+    }
+
+    /// 保存文档并通知后端；保存是工作区索引同步最新内容的时机。
+    fn on_did_save(&mut self, params: Option<&RawValue>, out: &mut Vec<Outgoing>) {
+        let Some(params) = parse_params::<DocumentOnlyParams>(params) else {
+            return;
+        };
+        let Some(document) = self.documents.get(&params.text_document.uri) else {
+            return;
+        };
+        let Some(index) = self.backend_by_language(document.language_id()) else {
+            return;
+        };
+
+        self.backends[index].did_save(document, out);
+    }
+
+    /// 握手完成：把时机交给后端做动态注册。
+    fn on_initialized(&mut self, out: &mut Vec<Outgoing>) {
+        for backend in &mut self.backends {
+            backend.initialized(out);
+        }
+    }
+
+    /// 工作区文件变化：交给每个后端自行判断是否关心。
+    fn on_watched_files(&mut self, params: Option<&RawValue>, out: &mut Vec<Outgoing>) {
+        for backend in &mut self.backends {
+            backend.did_change_watched_files(params, out);
+        }
     }
 
     /// 关闭文档并通知后端释放状态。

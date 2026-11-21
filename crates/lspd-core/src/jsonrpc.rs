@@ -231,6 +231,15 @@ impl<W: Write> MessageWriter<W> {
                 };
                 serde_json::to_writer(&mut self.buffer, &frame)?;
             }
+            Outgoing::Request { id, method, params } => {
+                let frame = RequestFrame {
+                    jsonrpc: "2.0",
+                    id,
+                    method,
+                    params,
+                };
+                serde_json::to_writer(&mut self.buffer, &frame)?;
+            }
         }
 
         write!(self.writer, "Content-Length: {}\r\n\r\n", self.buffer.len())?;
@@ -259,6 +268,19 @@ struct ResponseFrame<'a> {
 struct NotificationFrame<'a> {
     /// 协议版本，固定 "2.0"
     jsonrpc: &'static str,
+    /// 方法名
+    method: &'a str,
+    /// 参数
+    params: &'a Value,
+}
+
+/// 服务端主动请求帧。
+#[derive(Serialize)]
+struct RequestFrame<'a> {
+    /// 协议版本，固定 "2.0"
+    jsonrpc: &'static str,
+    /// 请求标识
+    id: &'a Id,
     /// 方法名
     method: &'a str,
     /// 参数

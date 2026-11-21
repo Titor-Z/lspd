@@ -9,7 +9,6 @@ use serde_json::value::RawValue;
 use serde_json::{Value, json};
 
 use lspd_core::docs::{Document, DocumentStore, Position};
-use lspd_core::message::error_code;
 use lspd_core::{Backend, Outgoing, ResponseError};
 
 use crate::features::{View, completion, diagnostics, hover, navigation, symbols};
@@ -163,11 +162,8 @@ impl Backend for HtmlBackend {
                 };
                 Some(Ok(result))
             }
-            _ => Some(Err(ResponseError {
-                code: error_code::METHOD_NOT_FOUND,
-                message: format!("html 后端不支持 {method}"),
-                data: None,
-            })),
+            // 不认识的方法交还核心层，由其他后端或统一的「方法不存在」应答处理
+            _ => None,
         }
     }
 

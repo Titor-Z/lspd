@@ -153,11 +153,8 @@ impl Backend for JsonBackend {
                 let items = schema::completion(document.text(), &cache.parsed.value, cache.schema.as_ref(), offset);
                 Some(Ok(json!({ "isIncomplete": false, "items": items })))
             }
-            _ => Some(Err(ResponseError {
-                code: lspd_core::message::error_code::METHOD_NOT_FOUND,
-                message: format!("json 后端不支持 {method}"),
-                data: None,
-            })),
+            // 不认识的方法交还核心层，由其他后端或统一的「方法不存在」应答处理
+            _ => None,
         }
     }
 

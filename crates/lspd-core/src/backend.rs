@@ -36,9 +36,21 @@ pub trait Backend {
         let _ = (document, out);
     }
 
+    /// 文档被保存。工作区级索引可在此把最新内容同步进去。
+    fn did_save(&mut self, document: &Document, out: &mut Vec<Outgoing>) {
+        let _ = (document, out);
+    }
+
     /// 文档被关闭，后端应释放该文档相关的全部状态。
     fn did_close(&mut self, uri: &str, out: &mut Vec<Outgoing>) {
         let _ = (uri, out);
+    }
+
+    /// 客户端报告工作区文件发生变化（新增、修改、删除）。
+    ///
+    /// 参数按 LSP 的 `DidChangeWatchedFilesParams` 原样转交，由后端自行解析。
+    fn did_change_watched_files(&mut self, params: Option<&RawValue>, out: &mut Vec<Outgoing>) {
+        let _ = (params, out);
     }
 
     /// 处理客户端请求。
@@ -54,6 +66,11 @@ pub trait Backend {
     ) -> Option<Result<Value, ResponseError>> {
         let _ = (method, params, documents, out);
         None
+    }
+
+    /// 客户端发来 `initialized`：握手完成，可以发起动态注册等主动请求。
+    fn initialized(&mut self, out: &mut Vec<Outgoing>) {
+        let _ = out;
     }
 
     /// 服务端即将退出，后端可在此做收尾。

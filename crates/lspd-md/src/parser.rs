@@ -4,8 +4,8 @@
 //! 不追求 CommonMark 完整合规——正文结构对大纲、折叠、跳转没有额外价值，
 //! 因此这里是一份"够用的块级切片"，而非语法树。
 //!
-//! 链接只识别行内形式 `[文本](目标 "标题")` 与 `<目标>`；引用式链接（`[a][ref]`）
-//! 暂不解析，避免为一个次要特性引入块级引用表的生命周期。
+//! 链接识别三种形式：行内 `[文本](目标)`、引用式 `[文本][标签]` 与
+//! 快捷引用 `[标签]`（仅当定义表里存在该标签时才算链接）。
 
 use lspd_core::text::Span;
 
@@ -57,6 +57,27 @@ pub enum LinkKind {
     Reference(String),
 }
 
+/// 链接目标里锚点部分的区间，用于重命名与快速修复。
+///
+/// 引用式链接的锚点写在定义行，无法从链接处定位，返回 `None`。
+pub fn anchor_span(link: &Link, definitions: &[LinkDefinition]) -> Option<Span> {
+    // 引用式链接的锚点写在定义行，链接处只有标签，因此要到定义表里取目标区间
+    let (target, base) = match &link.kind {
+        LinkKind::Reference(label) => {
+            let definition = definitions.iter().find(|item| &item.label == label)?;
+            (&definition.target, definition.target_span.start as usize)
+        }
+        _ => (&link.target, link.target_span.start as usize),
+    };
+
+    let hash = target.find('#')?;
+    let rest = &target[hash + 1..];
+    let anchor = rest.split('|').next().unwrap_or(rest);
+    let start = base + hash + 1;
+
+    Some(Span::new(start, start + anchor.len()))
+}
+
 /// 引用式链接的定义：`[标签]: 目标`。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LinkDefinition {
@@ -64,6 +85,8 @@ pub struct LinkDefinition {
     pub label: String,
     /// 目标原文
     pub target: String,
+    /// 目标在文档中的字节区间（重命名锚点时要改这一处，而不是链接处的标签）
+    pub target_span: Span,
 }
 
 /// 代码围栏。
@@ -100,6 +123,10 @@ pub fn parse(source: &str) -> Parsed {
     let mut line: u32 = 0;
     // 打开中的围栏：起始行、围栏字符、反引号/波浪线个数
     let mut open: Option<(u32, u8, usize)> = None;
+    // 上一个段落行（setext 标题的正文来源）：行号、起始偏移、原文
+    let mut paragraph: Option<(u32, usize, &str)> = None;
+    // 快捷引用候选，等定义表收齐后再决定是否算链接
+    let mut shortcuts: Vec<(u32, Span, Span, String)> = Vec::new();
 
     for raw in source.split_inclusive('\n') {
         let text = raw.strip_suffix('\n').unwrap_or(raw).trim_end_matches('\r');
@@ -125,8 +152,29 @@ pub fn parse(source: &str) -> Parsed {
             continue;
         }
 
-        if let Some((label, target)) = link_definition_at(text) {
-            definitions.push(LinkDefinition { label, target });
+        // setext 标题：`===` / `---` 紧跟在段落行之后
+        if let Some(level) = setext_underline(text)
+            && let Some((paragraph_line, paragraph_base, paragraph_text)) = paragraph.take()
+        {
+            let start = paragraph_text.len() - paragraph_text.trim_start().len();
+            let end = paragraph_text.trim_end().len();
+            headings.push(Heading {
+                level,
+                text_span: Span::new(paragraph_base + start, paragraph_base + end),
+                slug: unique_slug(&paragraph_text[start..end], &mut taken),
+                line: paragraph_line,
+            });
+            line += 1;
+            continue;
+        }
+
+        let definition = link_definition_at(text);
+        if let Some((label, target, (start, end))) = &definition {
+            definitions.push(LinkDefinition {
+                label: label.clone(),
+                target: target.clone(),
+                target_span: Span::new(base + start, base + end),
+            });
         }
 
         if let Some((level, start, end)) = heading_at(text) {
@@ -139,16 +187,30 @@ pub fn parse(source: &str) -> Parsed {
             });
         }
 
-        for found in link_targets(text) {
+        // 定义行本身不是链接（`[标签]: 目标` 的方括号不能被当成快捷引用）
+        let (found, shortcut) = match definition.is_some() {
+            true => (Vec::new(), Vec::new()),
+            false => link_targets(text),
+        };
+        for item in found {
             links.push(Link {
-                target_span: Span::new(base + found.target.0, base + found.target.1),
-                full_span: Span::new(base + found.full.0, base + found.full.1),
-                target: text[found.target.0..found.target.1].to_string(),
-                kind: found.kind,
+                target_span: Span::new(base + item.target.0, base + item.target.1),
+                full_span: Span::new(base + item.full.0, base + item.full.1),
+                target: text[item.target.0..item.target.1].to_string(),
+                kind: item.kind,
                 line,
             });
         }
+        for (target, full, label) in shortcut {
+            shortcuts.push((
+                line,
+                Span::new(base + target.0, base + target.1),
+                Span::new(base + full.0, base + full.1),
+                label,
+            ));
+        }
 
+        paragraph = paragraph_line(text, definition.is_some()).then_some((line, base, text));
         line += 1;
     }
 
@@ -158,6 +220,19 @@ pub fn parse(source: &str) -> Parsed {
             start_line: start,
             end_line: line.saturating_sub(1),
         });
+    }
+
+    // 快捷引用只有在定义表里存在对应标签时才算链接
+    for (line, target_span, full_span, label) in shortcuts {
+        if definitions.iter().any(|definition| definition.label == label) {
+            links.push(Link {
+                target_span,
+                full_span,
+                target: label.clone(),
+                kind: LinkKind::Reference(label),
+                line,
+            });
+        }
     }
 
     Parsed {
@@ -223,6 +298,40 @@ fn heading_at(line: &str) -> Option<(u8, usize, usize)> {
     }
 }
 
+/// 识别 setext 标题的下划线行，返回标题级别。
+fn setext_underline(line: &str) -> Option<u8> {
+    let trimmed = line.trim();
+    let marker = *trimmed.as_bytes().first()?;
+    if marker != b'=' && marker != b'-' {
+        return None;
+    }
+    if !trimmed.bytes().all(|byte| byte == marker) {
+        return None;
+    }
+
+    Some(if marker == b'=' { 1 } else { 2 })
+}
+
+/// 当前行能否作为 setext 标题的正文：排除空行、标题、列表、引用、表格与定义行。
+fn paragraph_line(line: &str, is_definition: bool) -> bool {
+    let trimmed = line.trim_start();
+    if trimmed.is_empty() || is_definition {
+        return false;
+    }
+    if trimmed.starts_with('#')
+        || trimmed.starts_with('>')
+        || trimmed.starts_with('|')
+        || trimmed.starts_with("- ")
+        || trimmed.starts_with("* ")
+        || trimmed.starts_with("+ ")
+    {
+        return false;
+    }
+
+    let digits = trimmed.bytes().take_while(|byte| byte.is_ascii_digit()).count();
+    !(digits > 0 && trimmed[digits..].starts_with(". "))
+}
+
 /// 识别围栏起始行，返回围栏字符与其长度。
 fn opening_fence(line: &str) -> Option<(u8, usize)> {
     let trimmed = line.trim_start_matches(' ');
@@ -246,9 +355,10 @@ fn is_closing_fence(line: &str, marker: u8, length: usize) -> bool {
     count >= length && count == trimmed.len()
 }
 
-/// 识别引用式链接定义 `[标签]: 目标`，返回标签与目标。
-fn link_definition_at(line: &str) -> Option<(String, String)> {
-    let trimmed = line.trim_start_matches(' ');
+/// 识别引用式链接定义 `[标签]: 目标`，返回标签、目标与目标在本行内的区间。
+fn link_definition_at(line: &str) -> Option<(String, String, (usize, usize))> {
+    let indent = line.len() - line.trim_start_matches(' ').len();
+    let trimmed = &line[indent..];
     if !trimmed.starts_with('[') {
         return None;
     }
@@ -260,7 +370,10 @@ fn link_definition_at(line: &str) -> Option<(String, String)> {
         return None;
     }
 
-    let rest = trimmed[colon + 1..].trim();
+    // 跳过冒号后的空白，记录目标真正开始的位置
+    let after = &trimmed[colon + 1..];
+    let spaces = after.len() - after.trim_start().len();
+    let rest = &after[spaces..];
     let end = rest
         .find(|ch: char| ch.is_ascii_whitespace())
         .unwrap_or(rest.len());
@@ -269,15 +382,18 @@ fn link_definition_at(line: &str) -> Option<(String, String)> {
         return None;
     }
 
-    Some((label, target))
+    let start = indent + colon + 1 + spaces;
+    Some((label, target, (start, start + end)))
 }
 
-/// 扫描一行的行内链接目标。返回目标在行内的字节区间与语法形式。
+/// 扫描一行的行内链接目标。
 ///
+/// 返回确定形式的链接，以及快捷引用候选（`[标签]`）——后者要等定义表收齐才能定性。
 /// 跳过行内代码（反引号包裹）内的伪链接，避免把文档里的示例当成真链接。
-fn link_targets(line: &str) -> Vec<LinkTarget> {
+fn link_targets(line: &str) -> (Vec<LinkTarget>, Vec<((usize, usize), (usize, usize), String)>) {
     let bytes = line.as_bytes();
     let mut targets = Vec::new();
+    let mut shortcuts = Vec::new();
     let mut index = 0usize;
     let mut in_code = false;
     // 最近一个未配对的 `[`，用于拼出完整链接区间
@@ -343,13 +459,20 @@ fn link_targets(line: &str) -> Vec<LinkTarget> {
                     last_open = None;
                     continue;
                 }
+                // `[标签]`：先记作候选，定义表收齐后再决定
+                if let Some(open) = last_open.take() {
+                    let label = &line[open + 1..index];
+                    if !label.is_empty() && !label.starts_with('[') {
+                        shortcuts.push(((open + 1, index), (open, index + 1), label.to_string()));
+                    }
+                }
                 index += 1;
             }
             _ => index += 1,
         }
     }
 
-    targets
+    (targets, shortcuts)
 }
 
 /// 从 `](` 之后开始取链接目标，返回命中结果与继续扫描的位置。
@@ -532,6 +655,53 @@ mod tests {
 ",
         );
         assert!(parsed.links.is_empty());
+    }
+
+    /// setext 标题：`===` 为一级，`---` 为二级；空行后的 `---` 不算标题。
+    #[test]
+    fn setext_headings_follow_paragraph_lines() {
+        let source = "一级标题\n===\n\n二级标题\n---\n\n正文\n\n---\n";
+        let parsed = parse(source);
+        let levels: Vec<u8> = parsed.headings.iter().map(|item| item.level).collect();
+        assert_eq!(levels, [1, 2]);
+        assert_eq!(parsed.headings[0].text_span.text(source), "一级标题");
+        assert_eq!(parsed.headings[1].text_span.text(source), "二级标题");
+        assert_eq!(parsed.headings[0].slug, "一级标题");
+    }
+
+    /// 列表项与引用行不能作为 setext 标题正文。
+    #[test]
+    fn setext_skips_non_paragraph_lines() {
+        let parsed = parse("- 列表\n---\n> 引用\n===\n");
+        assert!(parsed.headings.is_empty());
+    }
+
+    /// 快捷引用只有在定义表存在时才算链接。
+    #[test]
+    fn shortcut_references_require_definitions() {
+        let with_definition = parse("[说明]\n\n[说明]: ./a.md\n");
+        assert_eq!(with_definition.links.len(), 1);
+        assert_eq!(with_definition.links[0].kind, LinkKind::Reference("说明".into()));
+        assert_eq!(with_definition.links[0].target_span.text("[说明]\n\n[说明]: ./a.md\n"), "说明");
+
+        let without = parse("普通方括号 [不是链接]\n");
+        assert!(without.links.is_empty());
+    }
+
+    /// 锚点区间只覆盖 `#` 之后的文本，wikilink 的别名不计入。
+    #[test]
+    fn anchor_span_covers_only_the_anchor() {
+        let source = "见 [说明](./a.md#安装) 与 [[b#小节|别名]]。\n";
+        let parsed = parse(source);
+        assert_eq!(parser_anchor(&parsed, source, 0), Some("安装"));
+        assert_eq!(parser_anchor(&parsed, source, 1), Some("小节"));
+    }
+
+    /// 取指定链接的锚点文本。
+    fn parser_anchor<'a>(parsed: &Parsed, source: &'a str, index: usize) -> Option<&'a str> {
+        let link = parsed.links.get(index)?;
+        let span = anchor_span(link, &parsed.definitions)?;
+        source.get(span.start as usize..span.end as usize)
     }
 
     #[test]

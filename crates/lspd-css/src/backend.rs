@@ -232,11 +232,8 @@ impl Backend for StyleBackend {
                 let view = View::new(document.text(), &parsed.ast, &lines);
                 Some(Ok(navigation::rename(&view, offset, document.uri(), &params.new_name)))
             }
-            _ => Some(Err(ResponseError {
-                code: lspd_core::message::error_code::METHOD_NOT_FOUND,
-                message: format!("css 后端不支持 {method}"),
-                data: None,
-            })),
+            // 不认识的方法交还核心层，由其他后端或统一的「方法不存在」应答处理
+            _ => None,
         }
     }
 
