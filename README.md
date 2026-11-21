@@ -2,10 +2,10 @@
 
 低内存多语言语言服务器。单可执行文件，LSP over stdio，按子命令装载语言后端。
 
-支持 TypeScript / JavaScript、HTML、CSS、SCSS、Less、Sass、JSON/JSONC、Markdown、TOML、XML、SVG。
+支持 TypeScript / JavaScript、HTML、CSS、SCSS、Less、Sass、JSON/JSONC、YAML、Dockerfile、Markdown、TOML、XML、SVG。
 
 ```
-lspd web   # HTML / CSS / SCSS / Less / Sass / JSON / TOML / XML / SVG
+lspd web   # HTML / CSS / SCSS / Less / Sass / JSON / YAML / Dockerfile / TOML / XML / SVG
 lspd ts    # TypeScript / JavaScript
 lspd md    # Markdown
 ```
@@ -58,13 +58,15 @@ TypeScript 侧移植自 [oxc-project/tsrs](https://github.com/oxc-project/tsrs)�
 子命令
   （缺省）     本次构建包含的全部语言
   ts           TypeScript / JavaScript
-  web          HTML + CSS + SCSS + Less + Sass + JSON + TOML + XML + SVG
+  web          HTML + CSS + SCSS + Less + Sass + JSON + YAML + Dockerfile + TOML + XML + SVG
   html         HTML
   css          CSS / SCSS / Less
   sass         Sass（缩进语法）
   json         JSON / JSONC
   md           Markdown
   toml         TOML
+  yaml         YAML / Docker Compose
+  dockerfile   Dockerfile
   xml          XML
   svg          SVG
 
@@ -109,6 +111,8 @@ Web 后端只跟随已打开文档，两者生命周期完全不同，放在一�
 | `json` / `jsonc` | `.json` `.jsonc` | `lspd web` |
 | `markdown` | `.md` `.markdown` | `lspd md` |
 | `toml` | `.toml` | `lspd web` 或 `lspd toml` |
+| `yaml` | `.yml` `.yaml` | `lspd web` 或 `lspd yaml` |
+| `dockerfile` | `Dockerfile` `Dockerfile.*` `*.dockerfile` | `lspd web` 或 `lspd dockerfile` |
 | `xml` | `.xml` `.xsl` `.xslt` `.xsd` | `lspd web` 或 `lspd xml` |
 | `svg` | `.svg` | `lspd web` 或 `lspd svg` |
 | `typescript` | `.ts` | `lspd ts` |

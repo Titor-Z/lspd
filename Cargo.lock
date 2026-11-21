@@ -12,6 +12,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "arraydeque"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d902e3d592a523def97af8f317b08ce16b7ab854c1985a0c671e6f15cebc236"
+
+[[package]]
 name = "autocfg"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -222,6 +228,7 @@ version = "0.3.0"
 dependencies = [
  "lspd-core",
  "lspd-css",
+ "lspd-dockerfile",
  "lspd-html",
  "lspd-json",
  "lspd-md",
@@ -230,6 +237,7 @@ dependencies = [
  "lspd-toml",
  "lspd-tsbridge",
  "lspd-xml",
+ "lspd-yaml",
 ]
 
 [[package]]
@@ -243,6 +251,15 @@ dependencies = [
 
 [[package]]
 name = "lspd-css"
+version = "0.3.0"
+dependencies = [
+ "lspd-core",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "lspd-dockerfile"
 version = "0.3.0"
 dependencies = [
  "lspd-core",
@@ -267,6 +284,7 @@ dependencies = [
  "regex-lite",
  "serde",
  "serde_json",
+ "serde_yaml",
 ]
 
 [[package]]
@@ -321,6 +339,17 @@ name = "lspd-xml"
 version = "0.3.0"
 dependencies = [
  "lspd-core",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "lspd-yaml"
+version = "0.3.0"
+dependencies = [
+ "lspd-core",
+ "lspd-json",
+ "saphyr-parser",
  "serde",
  "serde_json",
 ]
@@ -461,6 +490,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "ryu"
+version = "1.0.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f"
+
+[[package]]
+name = "saphyr-parser"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a425f8285f1321dd220c4d781a7f757eccd6639359f72bdeceec3cdaac8b3a7"
+dependencies = [
+ "arraydeque",
+ "thiserror",
+]
+
+[[package]]
 name = "serde"
 version = "1.0.229"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -501,6 +546,19 @@ dependencies = [
  "serde",
  "serde_core",
  "zmij",
+]
+
+[[package]]
+name = "serde_yaml"
+version = "0.9.34+deprecated"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a8b1a1a2ebf674015cc02edccce75287f1a0130d394307b36743c2f5d504b47"
+dependencies = [
+ "indexmap",
+ "itoa",
+ "ryu",
+ "serde",
+ "unsafe-libyaml",
 ]
 
 [[package]]
@@ -558,6 +616,26 @@ dependencies = [
  "lspd-json",
  "lspd-sass",
  "serde_json",
+]
+
+[[package]]
+name = "thiserror"
+version = "2.0.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09e52cb86a36cede5cb101bf8908837b3e4c6e5e59fe7fd85c23fb56200d189e"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "2.0.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe5197923287db20a58125f0bc85c062f7f2c892de97b18c356f9efb14b28524"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -1073,6 +1151,12 @@ name = "unicode-ident"
 version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2c754d6c33795a1c324727428e5a7dedb5b06195f9890bdbcba760d3e246563"
+
+[[package]]
+name = "unsafe-libyaml"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "673aac59facbab8a9007c7f6108d11f63b603f7cabff99fabf650fea5c32b861"
 
 [[package]]
 name = "utf8_iter"

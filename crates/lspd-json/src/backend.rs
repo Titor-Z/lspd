@@ -13,6 +13,18 @@ use serde_json::{Value, json};
 use crate::parser::{self, Diagnostic, ParseResult, Severity, Value as Json};
 use crate::schema;
 
+/// 取顶层 `$schema` 引用（供远程后台拉取）。
+fn schema_reference(root: &Json, source: &str) -> Option<String> {
+    let Json::Object { members, .. } = root else { return None; };
+    members.iter().find_map(|member| {
+        if member.key_name != "$schema" { return None; }
+        match &member.value {
+            Json::String { content, .. } => Some(crate::parser::decode_string(source, *content)),
+            _ => None,
+        }
+    })
+}
+
 /// LSP SymbolKind 取值。
 const KIND_PROPERTY: u8 = 7;
 const KIND_ARRAY: u8 = 18;
@@ -38,6 +50,8 @@ pub fn backend() -> Box<dyn Backend> {
 pub struct JsonBackend {
     /// 单文档解析缓存
     cache: Option<ParseCache>,
+    /// schema 文件缓存
+    schema_store: schema::SchemaStore,
 }
 
 /// 一份文档的解析缓存。
@@ -45,8 +59,8 @@ struct ParseCache {
     uri: String,
     version: i32,
     parsed: ParseResult,
-    /// 从 `$schema` 加载的本地 schema；不可用为 `None`
-    schema: Option<Value>,
+    /// 从 `$schema` 或内置映射加载的 schema
+    schema: Option<schema::LoadedSchema>,
 }
 
 impl JsonBackend {
@@ -55,13 +69,17 @@ impl JsonBackend {
         let fresh = self.cache.as_ref().is_some_and(|cache| {
             cache.uri == document.uri() && cache.version == document.version()
         });
-
-        if fresh {
-            return;
-        }
+        if fresh { return; }
 
         let parsed = parser::parse_with(document.text(), dialect_of(document));
-        let schema = schema::load(document.text(), &parsed.value, document.uri());
+        let schema = schema::load_schema_with_store(document.text(), &parsed.value, document.uri(), &self.schema_store);
+        if schema.is_none() {
+            if let Some(reference) = schema_reference(&parsed.value, document.text()) {
+                if reference.starts_with("https://") || reference.starts_with("http://") {
+                    self.schema_store.schedule_remote_fetch(reference);
+                }
+            }
+        }
         self.cache = Some(ParseCache {
             uri: document.uri().to_string(),
             version: document.version(),
@@ -73,7 +91,6 @@ impl JsonBackend {
     /// 发布一份文档的诊断：语法诊断 + schema 校验诊断。
     fn publish(&mut self, document: &Document, out: &mut Vec<Outgoing>) {
         self.ensure(document);
-
         let cache = self.cache.as_ref().expect("刚写入缓存");
         let lines = LineIndex::new(document.text());
         let mut items: Vec<Value> = cache
@@ -84,10 +101,11 @@ impl JsonBackend {
             .collect();
 
         if let Some(schema) = &cache.schema {
-            items.extend(schema::validate(
+            items.extend(schema::validate_with_store(
                 document.text(),
                 &cache.parsed.value,
                 schema,
+                &self.schema_store,
                 &lines,
             ));
         }
@@ -163,12 +181,15 @@ impl Backend for JsonBackend {
                 let cache = self.cache.as_ref().expect("刚写入缓存");
                 let offset = document.offset_at(params.position) as u32;
 
-                let items = schema::completion(
-                    document.text(),
-                    &cache.parsed.value,
-                    cache.schema.as_ref(),
-                    offset,
-                );
+                let items = cache.schema.as_ref().map_or_else(Vec::new, |schema| {
+                    schema::completion_with_store(
+                        document.text(),
+                        &cache.parsed.value,
+                        schema,
+                        &self.schema_store,
+                        offset,
+                    )
+                });
                 Some(Ok(json!({ "isIncomplete": false, "items": items })))
             }
             "textDocument/hover" => {
@@ -178,7 +199,12 @@ impl Backend for JsonBackend {
                 let cache = self.cache.as_ref().expect("刚写入缓存");
                 let offset = document.offset_at(params.position) as u32;
 
-                let result = schema::hover(&cache.parsed.value, cache.schema.as_ref(), offset)
+                let result = cache
+                    .schema
+                    .as_ref()
+                    .and_then(|schema| {
+                        schema::hover_with_store(&cache.parsed.value, schema, &self.schema_store, offset)
+                    })
                     .map(|text| json!({ "contents": { "kind": "markdown", "value": text } }))
                     .unwrap_or(Value::Null);
                 Some(Ok(result))

@@ -174,19 +174,20 @@ impl Document {
 
     /// 该行的结束字节偏移，不含 `\n` 与 `\r`。
     fn line_end(&self, index: usize) -> usize {
+        let line_start = self.line_starts.get(index).copied().unwrap_or(self.text.len() as u32) as usize;
         let next_start = self
             .line_starts
             .get(index + 1)
             .copied()
             .unwrap_or(self.text.len() as u32);
         let mut end = next_start as usize;
-        if end > 0 && self.text.as_bytes().get(end - 1) == Some(&b'\n') {
+        if end > line_start && self.text.as_bytes().get(end - 1) == Some(&b'\n') {
             end -= 1;
         }
-        if end > 0 && self.text.as_bytes().get(end - 1) == Some(&b'\r') {
+        if end > line_start && self.text.as_bytes().get(end - 1) == Some(&b'\r') {
             end -= 1;
         }
-        end
+        end.max(line_start)
     }
 
     /// 重建行起始索引。

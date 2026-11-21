@@ -23,6 +23,11 @@ pub trait Backend {
     /// 该后端负责的文件扩展名（含点），用于处理尚未打开的文档请求。
     fn file_extensions(&self) -> &'static [&'static str];
 
+    /// 该后端负责的完整文件名（如 `Dockerfile`），用于无扩展名文件的路由。
+    fn file_names(&self) -> &'static [&'static str] {
+        &[]
+    }
+
     /// 该后端对外声明的能力，遵循 LSP 的 `ServerCapabilities` 结构。
     fn capabilities(&self) -> Value;
 

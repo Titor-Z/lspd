@@ -1,0 +1,12 @@
+[package]
+name = "lspd-dockerfile"
+description = "Dockerfile 语言服务：指令悬停、补全与基础诊断"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+lspd-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true

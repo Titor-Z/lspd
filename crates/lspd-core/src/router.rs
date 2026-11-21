@@ -229,9 +229,28 @@ impl Server {
             .position(|backend| backend.language_ids().contains(&language_id))
     }
 
-    /// 按文件扩展名查找后端。
+    /// 按文件扩展名或完整文件名查找后端。
     fn backend_by_extension(&self, uri: &str) -> Option<usize> {
-        let extension = std::path::Path::new(uri).extension()?.to_str()?;
+        let path = std::path::Path::new(uri);
+        let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+        let file_name_lower = file_name.to_ascii_lowercase();
+        if !file_name.is_empty() {
+            if let Some(index) = self.backends.iter().position(|backend| {
+                backend
+                    .file_names()
+                    .iter()
+                    .any(|name| name.eq_ignore_ascii_case(file_name))
+                    || backend.file_names().iter().any(|name| {
+                        let name_lower = name.to_ascii_lowercase();
+                        file_name_lower.starts_with(&format!("{name_lower}."))
+                            || file_name_lower.starts_with(&format!("{name_lower}-"))
+                    })
+            }) {
+                return Some(index);
+            }
+        }
+
+        let extension = path.extension()?.to_str()?;
         let dotted = format!(".{}", extension.to_ascii_lowercase());
         self.backends
             .iter()

@@ -16,6 +16,7 @@ publish = false
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
+serde_yaml = "0.9"
 rustc-hash = "2"
 
 lspd-core = { path = "crates/lspd-core" }
@@ -25,6 +26,8 @@ lspd-sass = { path = "crates/lspd-sass" }
 lspd-json = { path = "crates/lspd-json" }
 lspd-md = { path = "crates/lspd-md" }
 lspd-toml = { path = "crates/lspd-toml" }
+lspd-yaml = { path = "crates/lspd-yaml" }
+lspd-dockerfile = { path = "crates/lspd-dockerfile" }
 lspd-xml = { path = "crates/lspd-xml" }
 lspd-svg = { path = "crates/lspd-svg" }
 lspd-tsbridge = { path = "crates/lspd-tsbridge" }

@@ -34,6 +34,7 @@ pub fn backend() -> Box<dyn Backend> {
 pub struct TomlBackend {
     /// 单文档缓存
     cache: Option<ParseCache>,
+    schema_store: schema::SchemaStore,
 }
 
 /// 解析缓存。
@@ -41,7 +42,7 @@ struct ParseCache {
     uri: String,
     version: i32,
     parsed: ParseResult,
-    schema: Option<Value>,
+    schema: Option<schema::LoadedSchema>,
 }
 
 impl TomlBackend {
@@ -50,12 +51,10 @@ impl TomlBackend {
         let fresh = self.cache.as_ref().is_some_and(|cache| {
             cache.uri == document.uri() && cache.version == document.version()
         });
-        if fresh {
-            return;
-        }
+        if fresh { return; }
 
         let parsed = parser::parse(document.text());
-        let schema = schema::load(document.text(), &parsed.value, document.uri());
+        let schema = schema::load_schema_with_store(document.text(), &parsed.value, document.uri(), &self.schema_store);
         self.cache = Some(ParseCache {
             uri: document.uri().to_string(),
             version: document.version(),
@@ -78,10 +77,11 @@ impl TomlBackend {
             .collect();
 
         if let Some(schema) = &cache.schema {
-            items.extend(schema::validate(
+            items.extend(schema::validate_with_store(
                 document.text(),
                 &cache.parsed.value,
                 schema,
+                &self.schema_store,
                 &lines,
             ));
         }
@@ -155,12 +155,9 @@ impl Backend for TomlBackend {
                 self.ensure(document);
                 let cache = self.cache.as_ref().expect("刚写入缓存");
                 let offset = document.offset_at(params.position) as u32;
-                let items = schema::completion(
-                    document.text(),
-                    &cache.parsed.value,
-                    cache.schema.as_ref(),
-                    offset,
-                );
+                let items = cache.schema.as_ref().map_or_else(Vec::new, |schema| {
+                    schema::completion_with_store(document.text(), &cache.parsed.value, schema, &self.schema_store, offset)
+                });
                 Some(Ok(json!({ "isIncomplete": false, "items": items })))
             }
             "textDocument/hover" => {
@@ -169,7 +166,8 @@ impl Backend for TomlBackend {
                 self.ensure(document);
                 let cache = self.cache.as_ref().expect("刚写入缓存");
                 let offset = document.offset_at(params.position) as u32;
-                let result = schema::hover(&cache.parsed.value, cache.schema.as_ref(), offset)
+                let result = cache.schema.as_ref()
+                    .and_then(|schema| schema::hover_with_store(&cache.parsed.value, schema, &self.schema_store, offset))
                     .map(|text| json!({ "contents": { "kind": "markdown", "value": text } }))
                     .unwrap_or(Value::Null);
                 Some(Ok(result))

@@ -211,7 +211,7 @@
         <div class="spec">
           <h3><span class="dot dot-blue" aria-hidden="true"></span>lspd web</h3>
           <dl>
-            <dt>语言</dt><dd>HTML · CSS · SCSS · Less · Sass · JSON · TOML · XML · SVG</dd>
+            <dt>语言</dt><dd>HTML · CSS · SCSS · Less · Sass · JSON · YAML · Dockerfile · TOML · XML · SVG</dd>
             <dt>补全</dt><dd>标签、属性、属性值、at 规则</dd>
             <dt>导航</dt><dd>id / class 跳转，变量定义与引用</dd>
             <dt>诊断</dt><dd>结构错误、未知属性、schema 约束</dd>
@@ -248,7 +248,7 @@
           <p class="panel-note">Settings → Languages &amp; Frameworks → Language Servers → <kbd>+</kbd>，建两条。</p>
 <pre><code>Name       lspd web
 Command    /usr/local/bin/lspd web
-Languages  HTML, CSS, SCSS, Less, Sass, JSON, JSONC, TOML, XML, SVG</code></pre>
+Languages  HTML, CSS, SCSS, Less, Sass, JSON, JSONC, YAML, Dockerfile, TOML, XML, SVG</code></pre>
 <pre><code>Name       lspd ts
 Command    /usr/local/bin/lspd ts
 Languages  TypeScript, TypeScript React, JavaScript, JavaScript React</code></pre>
@@ -378,7 +378,7 @@ language-servers = ["lspd-ts"]</code></pre>
 const web = new LanguageClient("lspd-web", "lspd (Web)",
   { command: "/usr/local/bin/lspd", args: ["web"],
     transport: TransportKind.stdio },
-  { documentSelector: ["html", "css", "scss", "less", "sass", "json", "jsonc", "toml", "xml", "svg", "markdown"] });
+  { documentSelector: ["html", "css", "scss", "less", "sass", "json", "jsonc", "yaml", "dockerfile", "toml", "xml", "svg", "markdown"] });
 
 const ts = new LanguageClient("lspd-ts", "lspd (TypeScript)",
   { command: "/usr/local/bin/lspd", args: ["ts"],
@@ -394,7 +394,7 @@ const ts = new LanguageClient("lspd-ts", "lspd (TypeScript)",
   autocmd User lsp_setup call lsp#register_server({
     \ 'name': 'lspd-web',
     \ 'cmd': { server_info -> ['/usr/local/bin/lspd', 'web'] },
-    \ 'allowlist': ['html', 'css', 'scss', 'less', 'sass', 'json', 'jsonc', 'toml', 'xml', 'svg'],
+    \ 'allowlist': ['html', 'css', 'scss', 'less', 'sass', 'json', 'jsonc', 'yaml', 'dockerfile', 'toml', 'xml', 'svg'],
     \ })
   autocmd User lsp_setup call lsp#register_server({
     \ 'name': 'lspd-md',

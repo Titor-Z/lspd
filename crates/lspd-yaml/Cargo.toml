@@ -1,0 +1,14 @@
+[package]
+name = "lspd-yaml"
+description = "YAML 语言服务：语法诊断与 schema 驱动的补全、悬停、校验"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+lspd-core.workspace = true
+lspd-json.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+saphyr-parser = "0.4"

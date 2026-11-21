@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Docker Compose",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Compose 文件版本。现代 Compose 通常可省略。"
+    },
+    "name": {
+      "type": "string",
+      "description": "项目名称。"
+    },
+    "services": {
+      "type": "object",
+      "description": "服务定义集合，键为服务名。",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "image": { "type": "string", "description": "容器镜像名称。" },
+          "build": { "description": "构建配置，可为路径字符串或对象。" },
+          "command": { "description": "覆盖默认命令，可为字符串或数组。" },
+          "entrypoint": { "description": "覆盖入口点，可为字符串或数组。" },
+          "container_name": { "type": "string", "description": "容器名称。" },
+          "ports": { "type": "array", "description": "端口映射列表，如 \"8080:80\"。", "items": { "type": "string" } },
+          "expose": { "type": "array", "description": "仅向关联服务暴露的端口。", "items": { "type": "string" } },
+          "environment": { "description": "环境变量，可为对象或 KEY=value 数组。" },
+          "env_file": { "description": "环境变量文件，可为字符串或数组。" },
+          "volumes": { "type": "array", "description": "挂载卷列表。", "items": { "type": "string" } },
+          "depends_on": { "description": "服务依赖，可为数组或对象。" },
+          "restart": { "type": "string", "description": "重启策略。", "enum": ["no", "always", "on-failure", "unless-stopped"] },
+          "networks": { "description": "加入的网络，可为数组或对象。" },
+          "labels": { "description": "容器标签，可为对象或数组。" },
+          "healthcheck": { "type": "object", "description": "健康检查配置。" },
+          "deploy": { "type": "object", "description": "部署相关配置（Swarm/兼容字段）。" },
+          "profiles": { "type": "array", "description": "启用该服务的 profile。", "items": { "type": "string" } },
+          "working_dir": { "type": "string", "description": "容器内工作目录。" },
+          "user": { "type": "string", "description": "运行用户。" },
+          "privileged": { "type": "boolean", "description": "是否以特权模式运行。" },
+          "read_only": { "type": "boolean", "description": "是否将根文件系统设为只读。" },
+          "tty": { "type": "boolean", "description": "分配伪终端。" },
+          "stdin_open": { "type": "boolean", "description": "保持标准输入打开。" },
+          "extra_hosts": { "type": "array", "description": "额外 host 映射。", "items": { "type": "string" } },
+          "dns": { "description": "DNS 服务器，可为字符串或数组。" },
+          "secrets": { "type": "array", "description": "服务可用的 secret。", "items": { "type": "string" } },
+          "configs": { "type": "array", "description": "服务可用的 config。", "items": { "type": "string" } },
+          "logging": { "type": "object", "description": "日志配置。" },
+          "pull_policy": { "type": "string", "description": "镜像拉取策略。", "enum": ["always", "never", "if_not_present", "missing", "build"] },
+          "platform": { "type": "string", "description": "目标平台，如 linux/amd64。" }
+        }
+      }
+    },
+    "volumes": {
+      "type": "object",
+      "description": "命名卷定义。"
+    },
+    "networks": {
+      "type": "object",
+      "description": "网络定义。"
+    },
+    "configs": {
+      "type": "object",
+      "description": "配置对象定义。"
+    },
+    "secrets": {
+      "type": "object",
+      "description": "密钥对象定义。"
+    }
+  }
+}

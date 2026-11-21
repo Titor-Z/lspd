@@ -18,13 +18,15 @@ lspd — 低内存多语言语言服务器（LSP over stdio）
 子命令
   （缺省）     本次构建包含的全部语言
   ts           TypeScript / JavaScript
-  web          HTML + CSS + SCSS + Less + Sass + JSON
+  web          HTML + CSS + SCSS + Less + Sass + JSON + YAML + Dockerfile
   html         HTML
   css          CSS / SCSS / Less
   sass         Sass（缩进语法）
   json         JSON / JSONC
   md           Markdown
   toml         TOML
+  yaml         YAML / Docker Compose
+  dockerfile   Dockerfile
   xml          XML
   svg          SVG
 
@@ -44,7 +46,7 @@ lspd — 低内存多语言语言服务器（LSP over stdio）
 enum Subcommand {
     /// TypeScript 与 JavaScript
     Ts,
-    /// 网页技术栈聚合：HTML + CSS + Sass + JSON
+    /// 网页技术栈聚合：HTML + CSS + Sass + JSON + YAML + Dockerfile
     Web,
     /// HTML
     Html,
@@ -58,6 +60,10 @@ enum Subcommand {
     Md,
     /// TOML
     Toml,
+    /// YAML / Docker Compose
+    Yaml,
+    /// Dockerfile
+    Dockerfile,
     /// XML
     Xml,
     /// SVG
@@ -76,6 +82,8 @@ impl Subcommand {
             "json" => Some(Self::Json),
             "md" => Some(Self::Md),
             "toml" => Some(Self::Toml),
+            "yaml" | "yml" => Some(Self::Yaml),
+            "dockerfile" | "docker" => Some(Self::Dockerfile),
             "xml" => Some(Self::Xml),
             "svg" => Some(Self::Svg),
             _ => None,
@@ -86,13 +94,25 @@ impl Subcommand {
     fn required_features(self) -> &'static [&'static str] {
         match self {
             Self::Ts => &["ts"],
-            Self::Web => &["html", "css", "sass", "json", "toml", "xml", "svg"],
+            Self::Web => &[
+                "html",
+                "css",
+                "sass",
+                "json",
+                "toml",
+                "yaml",
+                "dockerfile",
+                "xml",
+                "svg",
+            ],
             Self::Html => &["html"],
             Self::Css => &["css"],
             Self::Sass => &["sass"],
             Self::Json => &["json"],
             Self::Md => &["md"],
             Self::Toml => &["toml"],
+            Self::Yaml => &["yaml"],
+            Self::Dockerfile => &["dockerfile"],
             Self::Xml => &["xml"],
             Self::Svg => &["svg"],
         }
@@ -150,6 +170,8 @@ fn built_features() -> Vec<&'static str> {
         cfg!(feature = "json").then_some("json"),
         cfg!(feature = "md").then_some("md"),
         cfg!(feature = "toml").then_some("toml"),
+        cfg!(feature = "yaml").then_some("yaml"),
+        cfg!(feature = "dockerfile").then_some("dockerfile"),
         cfg!(feature = "xml").then_some("xml"),
         cfg!(feature = "svg").then_some("svg"),
     ]
@@ -182,6 +204,12 @@ fn backends() -> Vec<Box<dyn Backend>> {
 
     #[cfg(feature = "toml")]
     list.push(lspd_toml::backend());
+
+    #[cfg(feature = "yaml")]
+    list.push(lspd_yaml::backend());
+
+    #[cfg(feature = "dockerfile")]
+    list.push(lspd_dockerfile::backend());
 
     #[cfg(feature = "xml")]
     list.push(lspd_xml::backend());
