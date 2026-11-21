@@ -61,7 +61,7 @@ TypeScript 侧移植自 [oxc-project/tsrs](https://github.com/oxc-project/tsrs)�
   html         HTML
   css          CSS / SCSS / Less
   sass         Sass（缩进语法）
-  json         JSON
+  json         JSON / JSONC
   md           Markdown
 
 选项
@@ -108,6 +108,10 @@ Web 后端只跟随已打开文档，两者生命周期完全不同，放在一�
 | `typescriptreact` | `.tsx` | `lspd ts` |
 | `javascript` | `.js` `.mjs` `.cjs` | `lspd ts` |
 | `javascriptreact` | `.jsx` | `lspd ts` |
+
+JSON 有两种方言：`jsonc` 语言标识、`.jsonc` 扩展名，以及常见的可注释文件
+（`tsconfig.json`、`jsconfig.json`、`.vscode/*.json`、`.eslintrc` 等）按 JSONC 解析，
+注释与尾随逗号都不报错；普通 `.json` 里的注释只给警告，不升级为错误。
 
 ### 换到任何编辑器都能用的三条自查
 

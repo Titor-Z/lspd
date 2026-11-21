@@ -58,7 +58,7 @@ impl JsonBackend {
             return;
         }
 
-        let parsed = parser::parse(document.text());
+        let parsed = parser::parse_with(document.text(), dialect_of(document));
         let schema = schema::load(document.text(), &parsed.value, document.uri());
         self.cache = Some(ParseCache {
             uri: document.uri().to_string(),
@@ -93,11 +93,11 @@ impl Backend for JsonBackend {
     }
 
     fn language_ids(&self) -> &'static [&'static str] {
-        &["json"]
+        &["json", "jsonc"]
     }
 
     fn file_extensions(&self) -> &'static [&'static str] {
-        &[".json"]
+        &[".json", ".jsonc"]
     }
 
     fn capabilities(&self) -> Value {
@@ -164,6 +164,60 @@ impl Backend for JsonBackend {
     fn shutdown(&mut self) {
         self.cache = None;
     }
+}
+
+/// 判定文档方言：JSONC 语言标识、`.jsonc` 扩展名与常见的可注释文件按 JSONC 解析。
+///
+/// 编辑器对 tsconfig.json 的语言标识并不统一（有的报 `jsonc`，有的报 `json`），
+/// 只认语言标识会让同一份文件在不同编辑器里表现不一致，因此再按文件名兜底。
+fn dialect_of(document: &Document) -> parser::Dialect {
+    if document.language_id() == "jsonc" || is_comment_friendly(document.uri()) {
+        parser::Dialect::Jsonc
+    } else {
+        parser::Dialect::Json
+    }
+}
+
+/// 文件名是否属于允许注释的 JSON 家族。
+fn is_comment_friendly(uri: &str) -> bool {
+    let path = uri.split(['?', '#']).next().unwrap_or(uri);
+    let name = path.rsplit('/').next().unwrap_or(path);
+
+    if name.ends_with(".jsonc") {
+        return true;
+    }
+
+    // 带前缀的家族：tsconfig.json、tsconfig.build.json、jsconfig.json 等。
+    if [("tsconfig", ".json"), ("jsconfig", ".json")]
+        .iter()
+        .any(|(prefix, suffix)| name.starts_with(prefix) && name.ends_with(suffix))
+    {
+        return true;
+    }
+
+    const NAMES: &[&str] = &[
+        "settings.json",
+        "launch.json",
+        "tasks.json",
+        "keybindings.json",
+        "extensions.json",
+        "mcp.json",
+        "devcontainer.json",
+        "biome.json",
+        "deno.json",
+        "omnisharp.json",
+        ".babelrc",
+        ".swcrc",
+        ".eslintrc",
+        ".eslintrc.json",
+        ".prettierrc",
+        ".prettierrc.json",
+        ".stylelintrc",
+        ".stylelintrc.json",
+        ".markdownlint.json",
+    ];
+
+    NAMES.contains(&name)
 }
 
 /// 一条诊断转为 LSP `Diagnostic`。
@@ -289,4 +343,50 @@ struct PositionParams {
 #[derive(Deserialize)]
 struct TextIdentifier {
     uri: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use lspd_core::docs::TextDocumentItem;
+
+    /// 造一份只用于判定方言的文档。
+    fn document(uri: &str, language_id: &str) -> Document {
+        Document::new(TextDocumentItem {
+            uri: uri.to_string(),
+            language_id: language_id.to_string(),
+            version: 1,
+            text: String::from("{}"),
+        })
+    }
+
+    /// 语言标识为 jsonc 时一律按 JSONC 解析。
+    #[test]
+    fn honors_jsonc_language_id() {
+        assert_eq!(dialect_of(&document("file:///p/data.json", "jsonc")), parser::Dialect::Jsonc);
+        assert_eq!(dialect_of(&document("file:///p/data.json", "json")), parser::Dialect::Json);
+    }
+
+    /// 可注释文件族即使被报成 json 也按 JSONC 解析。
+    #[test]
+    fn recognizes_comment_friendly_files() {
+        for uri in [
+            "file:///p/tsconfig.json",
+            "file:///p/tsconfig.build.json",
+            "file:///p/jsconfig.json",
+            "file:///p/.vscode/settings.json",
+            "file:///p/foo.jsonc",
+            "file:///p/.eslintrc",
+        ] {
+            assert!(is_comment_friendly(uri), "{uri} 应识别为 JSONC");
+        }
+    }
+
+    /// 普通 JSON 不应被误判为 JSONC。
+    #[test]
+    fn keeps_plain_json_strict() {
+        for uri in ["file:///p/package.json", "file:///p/tsconfig.yaml", "file:///p/data.json"] {
+            assert!(!is_comment_friendly(uri), "{uri} 不应识别为 JSONC");
+        }
+    }
 }

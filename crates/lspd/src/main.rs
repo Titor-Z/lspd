@@ -22,7 +22,7 @@ lspd — 低内存多语言语言服务器（LSP over stdio）
   html         HTML
   css          CSS / SCSS / Less
   sass         Sass（缩进语法）
-  json         JSON
+  json         JSON / JSONC
   md           Markdown
 
 选项

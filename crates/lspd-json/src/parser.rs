@@ -2,6 +2,9 @@
 //!
 //! 不用 `serde_json` 做解析（它严格、无恢复、不产出逐节点区间），
 //! 这里自己扫描：既给编辑期持续可用的语法树，也产出可定位的语法诊断。
+//!
+//! 支持两种方言：标准 JSON，以及允许注释与尾随逗号的 JSONC（tsconfig、`.vscode/*.json` 等）。
+//! 方言只影响词法层的空白处理与两条提示，值树结构完全相同。
 
 use lspd_core::text::Span;
 
@@ -75,9 +78,23 @@ pub struct ParseResult {
     pub diagnostics: Vec<Diagnostic>,
 }
 
-/// 解析一份 JSON 文档。
+/// JSON 方言。值树结构一致，差别只在注释与尾随逗号是否合法。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Dialect {
+    /// 标准 JSON：注释与尾随逗号都算不规范，给警告而非错误。
+    Json,
+    /// JSONC：允许注释与尾随逗号，不产生诊断。
+    Jsonc,
+}
+
+/// 按标准 JSON 解析一份文档。
 pub fn parse(source: &str) -> ParseResult {
-    let mut parser = Parser::new(source);
+    parse_with(source, Dialect::Json)
+}
+
+/// 按指定方言解析一份文档。
+pub fn parse_with(source: &str, dialect: Dialect) -> ParseResult {
+    let mut parser = Parser::new(source, dialect);
     let value = parser.parse_document();
     ParseResult { value, diagnostics: parser.diagnostics }
 }
@@ -90,26 +107,28 @@ struct Parser<'a> {
     bytes: &'a [u8],
     /// 游标
     position: usize,
+    /// 方言，决定注释与尾随逗号是否提示
+    dialect: Dialect,
     /// 诊断
     diagnostics: Vec<Diagnostic>,
 }
 
 impl<'a> Parser<'a> {
     /// 建立解析器。
-    fn new(source: &'a str) -> Self {
-        Self { source, bytes: source.as_bytes(), position: 0, diagnostics: Vec::new() }
+    fn new(source: &'a str, dialect: Dialect) -> Self {
+        Self { source, bytes: source.as_bytes(), position: 0, dialect, diagnostics: Vec::new() }
     }
 
     /// 解析整篇文档：一个值，之后不容许多余内容。
     fn parse_document(&mut self) -> Value {
-        self.skip_ws();
+        self.skip_trivia();
 
         if self.eof() {
             return Value::Null { span: Span::new(self.position, self.position) };
         }
 
         let value = self.parse_value();
-        self.skip_ws();
+        self.skip_trivia();
 
         if !self.eof() {
             self.error(Span::new(self.position, self.bytes.len()), "文档尾部有多余内容");
@@ -120,7 +139,7 @@ impl<'a> Parser<'a> {
 
     /// 解析一个值。
     fn parse_value(&mut self) -> Value {
-        self.skip_ws();
+        self.skip_trivia();
 
         if self.eof() {
             self.error(Span::new(self.position, self.position), "缺少值");
@@ -154,7 +173,7 @@ impl<'a> Parser<'a> {
         let mut members = Vec::new();
 
         loop {
-            self.skip_ws();
+            self.skip_trivia();
 
             if self.eof() {
                 self.error(Span::new(start, start + 1), "未闭合的 `{`");
@@ -178,7 +197,7 @@ impl<'a> Parser<'a> {
             let (key_span, content) = self.parse_string();
             let key_name = decode_string(self.source, content);
 
-            self.skip_ws();
+            self.skip_trivia();
             if self.peek() == b':' {
                 self.position += 1;
             } else {
@@ -188,13 +207,13 @@ impl<'a> Parser<'a> {
             let value = self.parse_value();
             members.push(Member { key: key_span, key_name, value });
 
-            self.skip_ws();
+            self.skip_trivia();
             match self.peek() {
                 b',' => {
                     self.position += 1;
-                    self.skip_ws();
+                    self.skip_trivia();
                     if self.peek() == b'}' {
-                        self.warn(Span::new(self.position - 1, self.position), "尾随逗号");
+                        self.check_trailing_comma();
                     }
                 }
                 b'}' => {
@@ -225,7 +244,7 @@ impl<'a> Parser<'a> {
         let mut items = Vec::new();
 
         loop {
-            self.skip_ws();
+            self.skip_trivia();
 
             if self.eof() {
                 self.error(Span::new(start, start + 1), "未闭合的 `[`");
@@ -238,14 +257,14 @@ impl<'a> Parser<'a> {
             }
 
             items.push(self.parse_value());
-            self.skip_ws();
+            self.skip_trivia();
 
             match self.peek() {
                 b',' => {
                     self.position += 1;
-                    self.skip_ws();
+                    self.skip_trivia();
                     if self.peek() == b']' {
-                        self.warn(Span::new(self.position - 1, self.position), "尾随逗号");
+                        self.check_trailing_comma();
                     }
                 }
                 b']' => {
@@ -345,10 +364,58 @@ impl<'a> Parser<'a> {
         self.bytes.get(self.position).copied().unwrap_or(0)
     }
 
-    /// 跳过空白。
-    fn skip_ws(&mut self) {
-        while !self.eof() && matches!(self.bytes[self.position], b' ' | b'\t' | b'\r' | b'\n') {
-            self.position += 1;
+    /// 跳过空白与注释。注释只在词法层被吞掉，不进入值树。
+    fn skip_trivia(&mut self) {
+        loop {
+            while !self.eof() && matches!(self.bytes[self.position], b' ' | b'\t' | b'\r' | b'\n') {
+                self.position += 1;
+            }
+
+            if !self.at_comment() {
+                return;
+            }
+
+            self.skip_comment();
+        }
+    }
+
+    /// 当前是否位于注释起点（`//` 或 `/*`）。
+    fn at_comment(&self) -> bool {
+        self.peek() == b'/' && matches!(self.bytes.get(self.position + 1), Some(b'/') | Some(b'*'))
+    }
+
+    /// 吞掉一条注释；块注释未闭合时报错，标准 JSON 下对注释给提示。
+    fn skip_comment(&mut self) {
+        let start = self.position;
+        let block = self.bytes[self.position + 1] == b'*';
+        self.position += 2;
+
+        if block {
+            while !self.eof() && !(self.peek() == b'*' && self.bytes.get(self.position + 1) == Some(&b'/')) {
+                self.position += 1;
+            }
+
+            if self.eof() {
+                self.error(Span::new(start, start + 2), "未闭合的 `/*`");
+                return;
+            }
+
+            self.position += 2;
+        } else {
+            while !self.eof() && self.peek() != b'\n' {
+                self.position += 1;
+            }
+        }
+
+        if self.dialect == Dialect::Json {
+            self.warn(Span::new(start, self.position), "标准 JSON 不支持注释，已按 JSONC 解析");
+        }
+    }
+
+    /// 尾随逗号：JSONC 允许，标准 JSON 提示。
+    fn check_trailing_comma(&mut self) {
+        if self.dialect == Dialect::Json {
+            self.warn(Span::new(self.position - 1, self.position), "尾随逗号");
         }
     }
 
@@ -519,6 +586,56 @@ mod tests {
     fn flags_invalid_number() {
         let result = parse("[01, 1., +2]");
         assert!(result.diagnostics.iter().filter(|d| d.message.contains("非法的数字")).count() >= 2);
+    }
+
+    /// JSONC 下注释应被吞掉，值树照常完整。
+    #[test]
+    fn skips_comments_in_jsonc() {
+        let source = r#"{
+            // 行注释
+            "a": 1, /* 块注释 */
+            /* 跨
+               行 */
+            "b": [2, 3] // 行尾注释
+        }"#;
+        let result = parse_with(source, Dialect::Jsonc);
+        assert!(result.diagnostics.is_empty(), "诊断：{:?}", result.diagnostics.iter().map(|d| &d.message).collect::<Vec<_>>());
+
+        let Value::Object { members, .. } = result.value else { panic!("根应为对象") };
+        assert_eq!(members.len(), 2);
+    }
+
+    /// 标准 JSON 下注释只提示，不应升级为结构错误。
+    #[test]
+    fn warns_on_comments_in_json() {
+        let result = parse_with("{ // 说明\n \"a\": 1 }", Dialect::Json);
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].severity, Severity::Warning);
+        assert!(result.diagnostics[0].message.contains("注释"));
+    }
+
+    /// JSONC 允许尾随逗号，标准 JSON 仍提示。
+    #[test]
+    fn trailing_comma_only_in_strict_json() {
+        assert!(parse_with(r#"{ "a": 1, }"#, Dialect::Jsonc).diagnostics.is_empty());
+        assert!(parse_with("[1, 2, ]", Dialect::Jsonc).diagnostics.is_empty());
+        assert!(parse_with(r#"{ "a": 1, }"#, Dialect::Json).diagnostics.iter().any(|d| d.message.contains("尾随逗号")));
+    }
+
+    /// 字符串里的 `//` 与 `/*` 不是注释。
+    #[test]
+    fn keeps_slashes_inside_strings() {
+        for dialect in [Dialect::Json, Dialect::Jsonc] {
+            let result = parse_with(r#"{ "url": "http://x/*y*/" }"#, dialect);
+            assert!(result.diagnostics.is_empty(), "诊断：{:?}", result.diagnostics.iter().map(|d| &d.message).collect::<Vec<_>>());
+        }
+    }
+
+    /// 未闭合的块注释应报错且不死循环。
+    #[test]
+    fn flags_unterminated_block_comment() {
+        let result = parse_with("{ /* 没有结束", Dialect::Jsonc);
+        assert!(result.diagnostics.iter().any(|d| d.message.contains("未闭合的 `/*`")));
     }
 
     /// 解析器不应因坏输入死循环：各种残缺输入都要收敛。
