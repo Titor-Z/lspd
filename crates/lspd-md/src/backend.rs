@@ -61,17 +61,22 @@ impl WorkspaceIndex {
     }
 
     /// 找与缺失文件名最接近的候选（编辑距离 ≤ 3，同时比对带与不带扩展名的形式）。
-    fn similar_files(&self, name: &str) -> Vec<String> {
+    ///
+    /// `exclude` 用于排除当前文档：从 `a.md` 里写断链时，把 `a.md` 本身列为候选没有意义。
+    fn similar_files(&self, name: &str, exclude: Option<&Path>) -> Vec<String> {
         let mut candidates: Vec<(usize, String)> = self
             .headings
             .iter()
+            .filter(|(path, _)| exclude != Some(path.as_path()))
             .filter_map(|(path, _)| {
                 let file = path.file_name().and_then(|file| file.to_str())?;
                 let stem = path.file_stem().and_then(|stem| stem.to_str())?;
-                let distance = edit_distance(name, file).min(edit_distance(name, stem));
+                let distance = [close_distance(name, file), close_distance(name, stem)]
+                    .into_iter()
+                    .flatten()
+                    .min()?;
                 Some((distance, file.to_string()))
             })
-            .filter(|(distance, _)| *distance <= 3)
             .collect();
         candidates.sort();
         candidates.truncate(3);
@@ -93,8 +98,9 @@ impl WorkspaceIndex {
         };
         let mut candidates: Vec<(usize, String)> = titles
             .iter()
-            .map(|(title_slug, text)| (edit_distance(slug, title_slug), text.clone()))
-            .filter(|(distance, _)| *distance <= 3)
+            .filter_map(|(title_slug, text)| {
+                close_distance(slug, title_slug).map(|distance| (distance, text.clone()))
+            })
             .collect();
         candidates.sort();
         candidates.truncate(3);
@@ -151,7 +157,18 @@ fn is_markdown(path: &Path) -> bool {
     )
 }
 
-/// Levenshtein 编辑距离，用于「猜你想去」。
+/// 候选门槛：编辑距离不超过 3，且不超过较长一方长度的一半（短词至少允许 1）。
+///
+/// 只看绝对距离会让短名字乱命中：`不存在` 与 `安装` 的距离恰好是 3，
+/// 于是任意三个汉字的断链都会建议一个两字标题的文件。按长度比例收紧后，
+/// 这类无关候选被排除，拼写错误（`安裝` / `安装`）仍然命中。
+fn close_distance(name: &str, candidate: &str) -> Option<usize> {
+    let distance = edit_distance(name, candidate);
+    let longest = name.chars().count().max(candidate.chars().count());
+    (distance <= 3 && distance <= (longest / 2).max(1)).then_some(distance)
+}
+
+/// Levenshtein 编辑距离，用于「猜你想去」（按字符，而非字节）。
 fn edit_distance(a: &str, b: &str) -> usize {
     let a: Vec<char> = a.chars().collect();
     let b: Vec<char> = b.chars().collect();
@@ -203,6 +220,7 @@ impl MarkdownBackend {
         self.ensure(document);
         let cache = self.cache.as_ref().expect("刚写入缓存");
         let lines = LineIndex::new(document.text());
+        let current = uri_path(document.uri());
         let mut items: Vec<Value> = Vec::new();
 
         for link in &cache.parsed.links {
@@ -222,7 +240,7 @@ impl MarkdownBackend {
                             .file_name()
                             .and_then(|name| name.to_str())
                             .unwrap_or(target.as_ref());
-                        let candidates = index.similar_files(name);
+                        let candidates = index.similar_files(name, current.as_deref());
                         if !candidates.is_empty() {
                             message.push_str(&format!("，是否想找：{}", candidates.join("、")));
                         }
@@ -789,6 +807,15 @@ mod tests {
         assert_eq!(edit_distance("kitten", "sitting"), 3);
     }
 
+    /// 候选门槛按长度比例收紧：无关短词不命中，拼写错误仍命中。
+    #[test]
+    fn close_distance_scales_with_length() {
+        assert_eq!(close_distance("安裝", "安装"), Some(1));
+        assert_eq!(close_distance("不存在", "安装"), None);
+        assert_eq!(close_distance("tsconfg", "tsconfig"), Some(1));
+        assert_eq!(close_distance("完全不同", "别的文件.md"), None);
+    }
+
     #[test]
     fn wiki_link_resolves_by_stem() {
         let (_, index, document) = setup("wiki_stem", "见 [[安装]]。\n");
@@ -834,8 +861,24 @@ mod tests {
         );
         let resolved = resolved.expect("按相对路径解析");
         assert!(!resolved.path.exists());
-        let candidates = index.similar_files("安裝");
+        let candidates = index.similar_files("安裝", None);
         assert_eq!(candidates, ["安装.md"]);
+    }
+
+    /// 候选不应把当前文档自己列出来。
+    #[test]
+    fn similar_files_skips_current_document() {
+        let root = std::env::temp_dir().join("lspd-md-test-similar-self");
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(root.join("a.md"), "# 标题\n").unwrap();
+
+        let index = WorkspaceIndex::build(&root);
+        let current = root.join("a.md");
+
+        assert_eq!(index.similar_files("a.md", None), ["a.md"]);
+        assert!(index.similar_files("a.md", Some(&current)).is_empty());
+        assert!(index.similar_files("不存在", None).is_empty());
     }
 
     #[test]
