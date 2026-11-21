@@ -106,8 +106,9 @@ jobs:
 
             用法：
             ```bash
-            lspd web   # HTML / CSS / SCSS / Sass / JSON
+            lspd web   # HTML / CSS / SCSS / Less / Sass / JSON / TOML / XML / SVG
             lspd ts    # TypeScript / JavaScript
+            lspd md    # Markdown
             ```
 
             Release 里的文件就是编译好的可执行文件本身，不打包、不解压：

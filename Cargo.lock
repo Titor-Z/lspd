@@ -218,7 +218,7 @@ checksum = "47d9d19d1d6efa0109d2f65ff4c85cddd50bd572e5a00127ab10987290bcefae"
 
 [[package]]
 name = "lspd"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "lspd-core",
  "lspd-css",
@@ -226,13 +226,15 @@ dependencies = [
  "lspd-json",
  "lspd-md",
  "lspd-sass",
+ "lspd-svg",
  "lspd-toml",
  "lspd-tsbridge",
+ "lspd-xml",
 ]
 
 [[package]]
 name = "lspd-core"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "rustc-hash",
  "serde",
@@ -241,7 +243,7 @@ dependencies = [
 
 [[package]]
 name = "lspd-css"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "lspd-core",
  "serde",
@@ -250,7 +252,7 @@ dependencies = [
 
 [[package]]
 name = "lspd-html"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "lspd-core",
  "serde",
@@ -259,7 +261,7 @@ dependencies = [
 
 [[package]]
 name = "lspd-json"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "lspd-core",
  "regex-lite",
@@ -269,7 +271,7 @@ dependencies = [
 
 [[package]]
 name = "lspd-md"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "lspd-core",
  "serde",
@@ -278,15 +280,25 @@ dependencies = [
 
 [[package]]
 name = "lspd-sass"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "lspd-core",
  "lspd-css",
 ]
 
 [[package]]
+name = "lspd-svg"
+version = "0.3.0"
+dependencies = [
+ "lspd-core",
+ "lspd-xml",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "lspd-toml"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "lspd-core",
  "lspd-json",
@@ -297,11 +309,20 @@ dependencies = [
 
 [[package]]
 name = "lspd-tsbridge"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "tsrs_core",
  "tsrs_lsp",
  "tsrs_vfs",
+]
+
+[[package]]
+name = "lspd-xml"
+version = "0.3.0"
+dependencies = [
+ "lspd-core",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

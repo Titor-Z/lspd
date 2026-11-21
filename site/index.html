@@ -39,7 +39,7 @@
         <p class="eyebrow">语言服务器 · Rust · LSP 3.17</p>
         <h1 class="hero-title">lspd</h1>
         <p class="hero-sub">
-          TypeScript、JavaScript、HTML、CSS、SCSS、Sass、JSON。<br>
+          TypeScript、JavaScript、HTML、CSS、SCSS、Sass、JSON、Markdown、TOML、XML、SVG。<br>
           单一可执行文件，LSP over stdio，无运行时依赖。
         </p>
 
@@ -137,7 +137,7 @@
           <div class="chart-head"><span>Web 栈空闲内存</span><span class="unit">MB</span></div>
 
           <div class="row" data-bar="2.7">
-            <span class="name">lspd web <em>单进程 · 五语言</em></span>
+            <span class="name">lspd web <em>单进程 · Web/数据语言</em></span>
             <span class="track"><i></i></span>
             <span class="val">2.7</span>
           </div>
@@ -211,7 +211,7 @@
         <div class="spec">
           <h3><span class="dot dot-blue" aria-hidden="true"></span>lspd web</h3>
           <dl>
-            <dt>语言</dt><dd>HTML · CSS · SCSS · Less · Sass · JSON</dd>
+            <dt>语言</dt><dd>HTML · CSS · SCSS · Less · Sass · JSON · TOML · XML · SVG</dd>
             <dt>补全</dt><dd>标签、属性、属性值、at 规则</dd>
             <dt>导航</dt><dd>id / class 跳转，变量定义与引用</dd>
             <dt>诊断</dt><dd>结构错误、未知属性、schema 约束</dd>
@@ -236,6 +236,7 @@
 
       <div class="tabs" role="tablist" aria-label="编辑器">
         <button role="tab" aria-selected="true" data-tab="openidea">OpenIDEA</button>
+        <button role="tab" aria-selected="false" data-tab="ttt">ttt</button>
         <button role="tab" aria-selected="false" data-tab="neovim">Neovim</button>
         <button role="tab" aria-selected="false" data-tab="helix">Helix</button>
         <button role="tab" aria-selected="false" data-tab="vscode">VSCode</button>
@@ -247,11 +248,47 @@
           <p class="panel-note">Settings → Languages &amp; Frameworks → Language Servers → <kbd>+</kbd>，建两条。</p>
 <pre><code>Name       lspd web
 Command    /usr/local/bin/lspd web
-Languages  HTML, CSS, SCSS, Less, Sass, JSON</code></pre>
+Languages  HTML, CSS, SCSS, Less, Sass, JSON, JSONC, TOML, XML, SVG</code></pre>
 <pre><code>Name       lspd ts
 Command    /usr/local/bin/lspd ts
 Languages  TypeScript, TypeScript React, JavaScript, JavaScript React</code></pre>
+<pre><code>Name       lspd md
+Command    /usr/local/bin/lspd md
+Languages  Markdown</code></pre>
           <p class="panel-note">右上有 Global / This project 范围开关。内置的同类服务器要先关掉，否则两份补全互相打架。</p>
+        </div>
+
+        
+        <div class="panel" data-panel="ttt">
+          <p class="panel-note">编辑 <code>~/.config/ttt/settings.json</code>，在 <code>lsp.servers</code> 下添加。command 建议用绝对路径。</p>
+<pre><code>{
+  "lsp": {
+    "servers": {
+      "lspd-ts": {
+        "command": ["/usr/local/bin/lspd", "ts"],
+        "languages": {
+          ".ts": "typescript", ".tsx": "typescriptreact",
+          ".js": "javascript", ".jsx": "javascriptreact",
+          ".mts": "typescript", ".cts": "typescript",
+          ".mjs": "javascript", ".cjs": "javascript"
+        }
+      },
+      "lspd-web": {
+        "command": ["/usr/local/bin/lspd", "web"],
+        "languages": {
+          ".html": "html", ".css": "css", ".scss": "scss",
+          ".less": "less", ".sass": "sass", ".json": "json",
+          ".jsonc": "jsonc", ".toml": "toml", ".xml": "xml", ".svg": "svg"
+        }
+      },
+      "lspd-md": {
+        "command": ["/usr/local/bin/lspd", "md"],
+        "languages": { ".md": "markdown", ".markdown": "markdown" }
+      }
+    }
+  }
+}</code></pre>
+          <p class="panel-note">修改后重启 ttt 或重新打开文件生效；同一扩展避免绑定多个同类 server。</p>
         </div>
 
         <div class="panel" data-panel="neovim">
@@ -260,7 +297,8 @@ Languages  TypeScript, TypeScript React, JavaScript, JavaScript React</code></pr
 
 local servers = {
   { name = "lspd-web", cmd = { lspd, "web" },
-    filetypes = { "html", "css", "scss", "less", "sass", "json" } },
+    filetypes = { "html", "css", "scss", "less", "sass", "json", "jsonc", "toml", "xml", "svg" } },
+  { name = "lspd-md", cmd = { lspd, "md" }, filetypes = { "markdown" } },
   { name = "lspd-ts", cmd = { lspd, "ts" },
     filetypes = { "typescript", "typescriptreact",
                   "javascript", "javascriptreact" } },
@@ -293,6 +331,10 @@ args = ["web"]
 command = "lspd"
 args = ["ts"]
 
+[language-server.lspd-md]
+command = "lspd"
+args = ["md"]
+
 [[language]]
 name = "html"
 language-servers = ["lspd-web"]
@@ -300,6 +342,22 @@ language-servers = ["lspd-web"]
 [[language]]
 name = "css"
 language-servers = ["lspd-web"]
+
+[[language]]
+name = "toml"
+language-servers = ["lspd-web"]
+
+[[language]]
+name = "xml"
+language-servers = ["lspd-web"]
+
+[[language]]
+name = "svg"
+language-servers = ["lspd-web"]
+
+[[language]]
+name = "markdown"
+language-servers = ["lspd-md"]
 
 [[language]]
 name = "typescript"
@@ -320,7 +378,7 @@ language-servers = ["lspd-ts"]</code></pre>
 const web = new LanguageClient("lspd-web", "lspd (Web)",
   { command: "/usr/local/bin/lspd", args: ["web"],
     transport: TransportKind.stdio },
-  { documentSelector: ["html", "css", "scss", "less", "sass", "json"] });
+  { documentSelector: ["html", "css", "scss", "less", "sass", "json", "jsonc", "toml", "xml", "svg", "markdown"] });
 
 const ts = new LanguageClient("lspd-ts", "lspd (TypeScript)",
   { command: "/usr/local/bin/lspd", args: ["ts"],
@@ -336,7 +394,12 @@ const ts = new LanguageClient("lspd-ts", "lspd (TypeScript)",
   autocmd User lsp_setup call lsp#register_server({
     \ 'name': 'lspd-web',
     \ 'cmd': { server_info -> ['/usr/local/bin/lspd', 'web'] },
-    \ 'allowlist': ['html', 'css', 'scss', 'less', 'sass', 'json'],
+    \ 'allowlist': ['html', 'css', 'scss', 'less', 'sass', 'json', 'jsonc', 'toml', 'xml', 'svg'],
+    \ })
+  autocmd User lsp_setup call lsp#register_server({
+    \ 'name': 'lspd-md',
+    \ 'cmd': { server_info -> ['/usr/local/bin/lspd', 'md'] },
+    \ 'allowlist': ['markdown'],
     \ })
   autocmd User lsp_setup call lsp#register_server({
     \ 'name': 'lspd-ts',

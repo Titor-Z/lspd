@@ -1,0 +1,16 @@
+[package]
+name = "lspd-svg"
+description = "SVG 语言服务：复用 XML 解析，面向 SVG 文件的语言标识与扩展名"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+lspd-core.workspace = true
+lspd-xml.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[build-dependencies]
+serde_json.workspace = true

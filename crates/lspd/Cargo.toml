@@ -15,7 +15,7 @@ default = ["ts", "web", "md"]
 # TypeScript / JavaScript
 ts = ["dep:lspd-tsbridge"]
 # 网页技术栈聚合：只声明聚合关系，不单独持有依赖
-web = ["html", "css", "sass", "json", "toml"]
+web = ["html", "css", "sass", "json", "toml", "xml", "svg"]
 html = ["dep:lspd-html"]
 css = ["dep:lspd-css"]
 sass = ["dep:lspd-sass"]
@@ -24,6 +24,10 @@ json = ["dep:lspd-json"]
 md = ["dep:lspd-md"]
 # TOML
 toml = ["dep:lspd-toml"]
+# XML
+xml = ["dep:lspd-xml"]
+# SVG
+svg = ["dep:lspd-svg"]
 
 [dependencies]
 lspd-core.workspace = true
@@ -33,4 +37,6 @@ lspd-sass = { workspace = true, optional = true }
 lspd-json = { workspace = true, optional = true }
 lspd-md = { workspace = true, optional = true }
 lspd-toml = { workspace = true, optional = true }
+lspd-xml = { workspace = true, optional = true }
+lspd-svg = { workspace = true, optional = true }
 lspd-tsbridge = { workspace = true, optional = true }

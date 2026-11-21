@@ -25,6 +25,8 @@ lspd — 低内存多语言语言服务器（LSP over stdio）
   json         JSON / JSONC
   md           Markdown
   toml         TOML
+  xml          XML
+  svg          SVG
 
 选项
   --stdio      使用标准输入输出，LSP 通用传输方式（默认，可省略）
@@ -56,6 +58,10 @@ enum Subcommand {
     Md,
     /// TOML
     Toml,
+    /// XML
+    Xml,
+    /// SVG
+    Svg,
 }
 
 impl Subcommand {
@@ -70,6 +76,8 @@ impl Subcommand {
             "json" => Some(Self::Json),
             "md" => Some(Self::Md),
             "toml" => Some(Self::Toml),
+            "xml" => Some(Self::Xml),
+            "svg" => Some(Self::Svg),
             _ => None,
         }
     }
@@ -78,13 +86,15 @@ impl Subcommand {
     fn required_features(self) -> &'static [&'static str] {
         match self {
             Self::Ts => &["ts"],
-            Self::Web => &["html", "css", "sass", "json", "toml"],
+            Self::Web => &["html", "css", "sass", "json", "toml", "xml", "svg"],
             Self::Html => &["html"],
             Self::Css => &["css"],
             Self::Sass => &["sass"],
             Self::Json => &["json"],
             Self::Md => &["md"],
             Self::Toml => &["toml"],
+            Self::Xml => &["xml"],
+            Self::Svg => &["svg"],
         }
     }
 }
@@ -140,6 +150,8 @@ fn built_features() -> Vec<&'static str> {
         cfg!(feature = "json").then_some("json"),
         cfg!(feature = "md").then_some("md"),
         cfg!(feature = "toml").then_some("toml"),
+        cfg!(feature = "xml").then_some("xml"),
+        cfg!(feature = "svg").then_some("svg"),
     ]
     .into_iter()
     .flatten()
@@ -170,6 +182,12 @@ fn backends() -> Vec<Box<dyn Backend>> {
 
     #[cfg(feature = "toml")]
     list.push(lspd_toml::backend());
+
+    #[cfg(feature = "xml")]
+    list.push(lspd_xml::backend());
+
+    #[cfg(feature = "svg")]
+    list.push(lspd_svg::backend());
 
     list.shrink_to_fit();
     list

@@ -1,0 +1,605 @@
+{
+  "tags": [
+    {
+      "name": "animate",
+      "description": "动画元素。",
+      "attributes": [
+        {
+          "name": "attributeName",
+          "description": "目标属性"
+        },
+        {
+          "name": "from",
+          "description": "起始值"
+        },
+        {
+          "name": "to",
+          "description": "结束值"
+        },
+        {
+          "name": "dur",
+          "description": "持续时间"
+        },
+        {
+          "name": "repeatCount",
+          "description": "重复次数"
+        }
+      ]
+    },
+    {
+      "name": "animateTransform",
+      "description": "变换动画。",
+      "attributes": [
+        {
+          "name": "attributeName",
+          "description": "目标属性"
+        },
+        {
+          "name": "type",
+          "description": "变换类型"
+        },
+        {
+          "name": "from",
+          "description": "起始值"
+        },
+        {
+          "name": "to",
+          "description": "结束值"
+        },
+        {
+          "name": "dur",
+          "description": "持续时间"
+        },
+        {
+          "name": "repeatCount",
+          "description": "重复次数"
+        }
+      ]
+    },
+    {
+      "name": "circle",
+      "description": "圆。",
+      "attributes": [
+        {
+          "name": "cx",
+          "description": "圆心 X"
+        },
+        {
+          "name": "cy",
+          "description": "圆心 Y"
+        },
+        {
+          "name": "r",
+          "description": "半径"
+        },
+        {
+          "name": "fill",
+          "description": "填充"
+        },
+        {
+          "name": "stroke",
+          "description": "描边"
+        }
+      ]
+    },
+    {
+      "name": "clipPath",
+      "description": "裁剪路径。",
+      "attributes": [
+        {
+          "name": "id",
+          "description": "标识符"
+        }
+      ]
+    },
+    {
+      "name": "defs",
+      "description": "可复用定义容器。",
+      "attributes": []
+    },
+    {
+      "name": "desc",
+      "description": "描述。",
+      "attributes": []
+    },
+    {
+      "name": "ellipse",
+      "description": "椭圆。",
+      "attributes": [
+        {
+          "name": "cx",
+          "description": "圆心 X"
+        },
+        {
+          "name": "cy",
+          "description": "圆心 Y"
+        },
+        {
+          "name": "rx",
+          "description": "X 半径"
+        },
+        {
+          "name": "ry",
+          "description": "Y 半径"
+        }
+      ]
+    },
+    {
+      "name": "g",
+      "description": "分组元素。",
+      "attributes": [
+        {
+          "name": "id",
+          "description": "标识符"
+        },
+        {
+          "name": "fill",
+          "description": "填充"
+        },
+        {
+          "name": "stroke",
+          "description": "描边"
+        },
+        {
+          "name": "transform",
+          "description": "变换"
+        }
+      ]
+    },
+    {
+      "name": "image",
+      "description": "位图图像。",
+      "attributes": [
+        {
+          "name": "href",
+          "description": "图像地址"
+        },
+        {
+          "name": "x",
+          "description": "X"
+        },
+        {
+          "name": "y",
+          "description": "Y"
+        },
+        {
+          "name": "width",
+          "description": "宽度"
+        },
+        {
+          "name": "height",
+          "description": "高度"
+        }
+      ]
+    },
+    {
+      "name": "line",
+      "description": "直线。",
+      "attributes": [
+        {
+          "name": "x1",
+          "description": "起点 X"
+        },
+        {
+          "name": "y1",
+          "description": "起点 Y"
+        },
+        {
+          "name": "x2",
+          "description": "终点 X"
+        },
+        {
+          "name": "y2",
+          "description": "终点 Y"
+        },
+        {
+          "name": "stroke",
+          "description": "描边"
+        }
+      ]
+    },
+    {
+      "name": "linearGradient",
+      "description": "线性渐变。",
+      "attributes": [
+        {
+          "name": "id",
+          "description": "标识符"
+        },
+        {
+          "name": "x1",
+          "description": "起点 X"
+        },
+        {
+          "name": "y1",
+          "description": "起点 Y"
+        },
+        {
+          "name": "x2",
+          "description": "终点 X"
+        },
+        {
+          "name": "y2",
+          "description": "终点 Y"
+        }
+      ]
+    },
+    {
+      "name": "mask",
+      "description": "蒙版。",
+      "attributes": [
+        {
+          "name": "id",
+          "description": "标识符"
+        }
+      ]
+    },
+    {
+      "name": "path",
+      "description": "路径元素。",
+      "attributes": [
+        {
+          "name": "d",
+          "description": "路径命令"
+        },
+        {
+          "name": "fill",
+          "description": "填充"
+        },
+        {
+          "name": "stroke",
+          "description": "描边"
+        },
+        {
+          "name": "stroke-width",
+          "description": "描边宽度"
+        },
+        {
+          "name": "stroke-linecap",
+          "description": "线帽"
+        },
+        {
+          "name": "stroke-linejoin",
+          "description": "线连接"
+        },
+        {
+          "name": "fill-rule",
+          "description": "填充规则"
+        }
+      ]
+    },
+    {
+      "name": "polygon",
+      "description": "多边形。",
+      "attributes": [
+        {
+          "name": "points",
+          "description": "点列表"
+        },
+        {
+          "name": "fill",
+          "description": "填充"
+        },
+        {
+          "name": "stroke",
+          "description": "描边"
+        }
+      ]
+    },
+    {
+      "name": "polyline",
+      "description": "折线。",
+      "attributes": [
+        {
+          "name": "points",
+          "description": "点列表"
+        },
+        {
+          "name": "fill",
+          "description": "填充"
+        },
+        {
+          "name": "stroke",
+          "description": "描边"
+        }
+      ]
+    },
+    {
+      "name": "radialGradient",
+      "description": "径向渐变。",
+      "attributes": [
+        {
+          "name": "id",
+          "description": "标识符"
+        },
+        {
+          "name": "cx",
+          "description": "中心 X"
+        },
+        {
+          "name": "cy",
+          "description": "中心 Y"
+        },
+        {
+          "name": "r",
+          "description": "半径"
+        }
+      ]
+    },
+    {
+      "name": "rect",
+      "description": "矩形。",
+      "attributes": [
+        {
+          "name": "x",
+          "description": "左上角 X"
+        },
+        {
+          "name": "y",
+          "description": "左上角 Y"
+        },
+        {
+          "name": "width",
+          "description": "宽度"
+        },
+        {
+          "name": "height",
+          "description": "高度"
+        },
+        {
+          "name": "rx",
+          "description": "圆角 X"
+        },
+        {
+          "name": "ry",
+          "description": "圆角 Y"
+        },
+        {
+          "name": "fill",
+          "description": "填充"
+        },
+        {
+          "name": "stroke",
+          "description": "描边"
+        }
+      ]
+    },
+    {
+      "name": "stop",
+      "description": "渐变色标。",
+      "attributes": [
+        {
+          "name": "offset",
+          "description": "位置"
+        },
+        {
+          "name": "stop-color",
+          "description": "颜色"
+        },
+        {
+          "name": "stop-opacity",
+          "description": "不透明度"
+        }
+      ]
+    },
+    {
+      "name": "style",
+      "description": "内嵌样式。",
+      "attributes": [
+        {
+          "name": "type",
+          "description": "MIME 类型"
+        }
+      ]
+    },
+    {
+      "name": "svg",
+      "description": "SVG 根元素。",
+      "attributes": [
+        {
+          "name": "xmlns",
+          "description": "XML 命名空间，SVG 通常为 http://www.w3.org/2000/svg"
+        },
+        {
+          "name": "viewBox",
+          "description": "视口坐标系：min-x min-y width height"
+        },
+        {
+          "name": "width",
+          "description": "显示宽度"
+        },
+        {
+          "name": "height",
+          "description": "显示高度"
+        },
+        {
+          "name": "fill",
+          "description": "默认填充颜色"
+        },
+        {
+          "name": "stroke",
+          "description": "默认描边颜色"
+        },
+        {
+          "name": "preserveAspectRatio",
+          "description": "缩放对齐"
+        }
+      ]
+    },
+    {
+      "name": "symbol",
+      "description": "可复用图形模板。",
+      "attributes": [
+        {
+          "name": "id",
+          "description": "标识符"
+        },
+        {
+          "name": "viewBox",
+          "description": "视口"
+        }
+      ]
+    },
+    {
+      "name": "text",
+      "description": "文本。",
+      "attributes": [
+        {
+          "name": "x",
+          "description": "X"
+        },
+        {
+          "name": "y",
+          "description": "Y"
+        },
+        {
+          "name": "font-size",
+          "description": "字号"
+        },
+        {
+          "name": "fill",
+          "description": "填充"
+        },
+        {
+          "name": "dx",
+          "description": "X偏移"
+        },
+        {
+          "name": "dy",
+          "description": "Y偏移"
+        },
+        {
+          "name": "text-anchor",
+          "description": "锚点"
+        },
+        {
+          "name": "font-family",
+          "description": "字体"
+        }
+      ]
+    },
+    {
+      "name": "title",
+      "description": "标题/可访问名称。",
+      "attributes": []
+    },
+    {
+      "name": "tspan",
+      "description": "文本子片段。",
+      "attributes": [
+        {
+          "name": "x",
+          "description": "X"
+        },
+        {
+          "name": "y",
+          "description": "Y"
+        },
+        {
+          "name": "dx",
+          "description": "X 偏移"
+        },
+        {
+          "name": "dy",
+          "description": "Y 偏移"
+        }
+      ]
+    },
+    {
+      "name": "use",
+      "description": "引用已定义元素。",
+      "attributes": [
+        {
+          "name": "href",
+          "description": "引用目标"
+        },
+        {
+          "name": "x",
+          "description": "X"
+        },
+        {
+          "name": "y",
+          "description": "Y"
+        }
+      ]
+    }
+  ],
+  "globalAttributes": [
+    {
+      "name": "class",
+      "description": "类名"
+    },
+    {
+      "name": "clip-path",
+      "description": "裁剪路径引用"
+    },
+    {
+      "name": "display",
+      "description": "显示方式"
+    },
+    {
+      "name": "fill",
+      "description": "填充"
+    },
+    {
+      "name": "fill-opacity",
+      "description": "填充不透明度"
+    },
+    {
+      "name": "filter",
+      "description": "滤镜引用"
+    },
+    {
+      "name": "id",
+      "description": "唯一标识符"
+    },
+    {
+      "name": "mask",
+      "description": "蒙版引用"
+    },
+    {
+      "name": "opacity",
+      "description": "不透明度"
+    },
+    {
+      "name": "pointer-events",
+      "description": "指针事件"
+    },
+    {
+      "name": "stroke",
+      "description": "描边"
+    },
+    {
+      "name": "stroke-opacity",
+      "description": "描边不透明度"
+    },
+    {
+      "name": "stroke-width",
+      "description": "描边宽度"
+    },
+    {
+      "name": "style",
+      "description": "内联样式"
+    },
+    {
+      "name": "transform",
+      "description": "变换"
+    },
+    {
+      "name": "visibility",
+      "description": "可见性"
+    },
+    {
+      "name": "xml:space",
+      "description": "空白处理，preserve/default"
+    },
+    {
+      "name": "xmlns",
+      "description": "默认命名空间声明"
+    },
+    {
+      "name": "xmlns:xlink",
+      "description": "XLink 命名空间声明"
+    }
+  ]
+}

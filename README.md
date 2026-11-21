@@ -2,11 +2,12 @@
 
 低内存多语言语言服务器。单可执行文件，LSP over stdio，按子命令装载语言后端。
 
-支持 TypeScript / JavaScript，以及 HTML、CSS、SCSS、Less、Sass、JSON。
+支持 TypeScript / JavaScript、HTML、CSS、SCSS、Less、Sass、JSON/JSONC、Markdown、TOML、XML、SVG。
 
 ```
-lspd web   # HTML / CSS / SCSS / Less / Sass / JSON
+lspd web   # HTML / CSS / SCSS / Less / Sass / JSON / TOML / XML / SVG
 lspd ts    # TypeScript / JavaScript
+lspd md    # Markdown
 ```
 
 ## 安装
@@ -57,12 +58,15 @@ TypeScript 侧移植自 [oxc-project/tsrs](https://github.com/oxc-project/tsrs)�
 子命令
   （缺省）     本次构建包含的全部语言
   ts           TypeScript / JavaScript
-  web          HTML + CSS + SCSS + Less + Sass + JSON
+  web          HTML + CSS + SCSS + Less + Sass + JSON + TOML + XML + SVG
   html         HTML
   css          CSS / SCSS / Less
   sass         Sass（缩进语法）
   json         JSON / JSONC
   md           Markdown
+  toml         TOML
+  xml          XML
+  svg          SVG
 
 选项
   --stdio      使用标准输入输出，LSP 通用传输方式（默认，可省略）
@@ -104,6 +108,9 @@ Web 后端只跟随已打开文档，两者生命周期完全不同，放在一�
 | `sass` | `.sass` | `lspd web` |
 | `json` / `jsonc` | `.json` `.jsonc` | `lspd web` |
 | `markdown` | `.md` `.markdown` | `lspd md` |
+| `toml` | `.toml` | `lspd web` 或 `lspd toml` |
+| `xml` | `.xml` `.xsl` `.xslt` `.xsd` | `lspd web` 或 `lspd xml` |
+| `svg` | `.svg` | `lspd web` 或 `lspd svg` |
 | `typescript` | `.ts` | `lspd ts` |
 | `typescriptreact` | `.tsx` | `lspd ts` |
 | `javascript` | `.js` `.mjs` `.cjs` | `lspd ts` |
@@ -117,7 +124,7 @@ JSON 有两种方言：`jsonc` 语言标识、`.jsonc` 扩展名，以及常见�
 
 下面所有编辑器的配置，本质都是同一件事。如果你的编辑器不在名单里，对照这三条判断能不能接：
 
-1. **能填命令与参数吗** —— 需要能指定可执行文件 `lspd` 加上参数 `web` 或 `ts`（有的编辑器分两个字段，有的只收一整行命令）。
+1. **能填命令与参数吗** —— 需要能指定可执行文件 `lspd` 加上参数 `web` / `ts` / `md`（有的编辑器分两个字段，有的只收一整行命令）。
 2. **能按语言绑定不同服务器吗** —— 需要让 HTML 走 `lspd web`、TS 走 `lspd ts`，而不是所有语言共用一个。
 3. **传输是 stdio 吗** —— `lspd` 只支持 stdio，不支持 TCP 或 socket。
 
@@ -148,7 +155,7 @@ OpenIDEA **原生支持自定义语言服务器**，不需要装插件。
 |---|---|
 | Command | `/usr/local/bin/lspd web` |
 | Name | `lspd web` |
-| Languages | HTML、CSS、SCSS、Less、Sass、JSON |
+| Languages | HTML、CSS、SCSS、Less、Sass、JSON、JSONC、TOML、XML、SVG |
 
 **条目二（TypeScript）**
 
@@ -157,6 +164,14 @@ OpenIDEA **原生支持自定义语言服务器**，不需要装插件。
 | Command | `/usr/local/bin/lspd ts` |
 | Name | `lspd ts` |
 | Languages | TypeScript、TypeScript React、JavaScript、JavaScript React |
+
+**条目三（Markdown，可选）**
+
+| 字段 | 值 |
+|---|---|
+| Command | `/usr/local/bin/lspd md` |
+| Name | `lspd md` |
+| Languages | Markdown |
 
 要点：
 
@@ -168,6 +183,65 @@ OpenIDEA **原生支持自定义语言服务器**，不需要装插件。
 - OpenIDEA 内置了同类语言服务器（例如 CSS Language Server、TypeScript 相关项）。
   同一个语言只能由一个服务器处理，否则会出现两份补全互相打架。
   在列表里选中内置项，取消勾选「Use xxx for … files」，或者直接关掉它。
+
+---
+
+## ttt
+
+ttt 支持在设置里手动注册 LSP server，不需要插件。
+
+编辑 `~/.config/ttt/settings.json`（或通过设置界面对应字段），在 `lsp.servers` 下添加：
+
+```json
+{
+  "lsp": {
+    "servers": {
+      "lspd-ts": {
+        "command": ["/usr/local/bin/lspd", "ts"],
+        "languages": {
+          ".ts": "typescript",
+          ".tsx": "typescriptreact",
+          ".js": "javascript",
+          ".jsx": "javascriptreact",
+          ".mts": "typescript",
+          ".cts": "typescript",
+          ".mjs": "javascript",
+          ".cjs": "javascript"
+        }
+      },
+      "lspd-web": {
+        "command": ["/usr/local/bin/lspd", "web"],
+        "languages": {
+          ".html": "html",
+          ".css": "css",
+          ".scss": "scss",
+          ".less": "less",
+          ".sass": "sass",
+          ".json": "json",
+          ".jsonc": "jsonc",
+          ".toml": "toml",
+          ".xml": "xml",
+          ".svg": "svg"
+        }
+      },
+      "lspd-md": {
+        "command": ["/usr/local/bin/lspd", "md"],
+        "languages": {
+          ".md": "markdown",
+          ".markdown": "markdown"
+        }
+      }
+    }
+  }
+}
+```
+
+要点：
+
+- `command` 是数组，第一个元素是可执行文件绝对路径，后面是参数；建议用绝对路径。
+- `languages` 的 key 是文件扩展名，value 是 LSP languageId。
+- 修改后重启 ttt 或重新打开文件使配置生效。
+- 如果已有同类语言服务，避免对同一扩展重复绑定多个 server。
 
 ---
 
@@ -186,7 +260,12 @@ local servers = {
   web = {
     name = "lspd-web",
     cmd = { lspd, "web" },
-    filetypes = { "html", "css", "scss", "less", "sass", "json", "jsonc" },
+    filetypes = { "html", "css", "scss", "less", "sass", "json", "jsonc", "toml", "xml", "svg" },
+  },
+  md = {
+    name = "lspd-md",
+    cmd = { lspd, "md" },
+    filetypes = { "markdown" },
   },
   ts = {
     name = "lspd-ts",
@@ -245,7 +324,7 @@ lspconfig.lspd_ts.setup({})
 ```
 
 `web` 组同理，把 `cmd` 换成 `{ "/usr/local/bin/lspd", "web" }`、`filetypes` 换成
-`{ "html", "css", "scss", "less", "sass", "json" }` 即可。
+`{ "html", "css", "scss", "less", "sass", "json", "jsonc", "toml", "xml", "svg" }`；Markdown 用 `{ "/usr/local/bin/lspd", "md" }`。
 
 ---
 
@@ -264,6 +343,10 @@ args = ["web"]
 command = "lspd"
 args = ["ts"]
 
+[language-server.lspd-md]
+command = "lspd"
+args = ["md"]
+
 [[language]]
 name = "html"
 language-servers = ["lspd-web"]
@@ -279,6 +362,22 @@ language-servers = ["lspd-web"]
 [[language]]
 name = "json"
 language-servers = ["lspd-web"]
+
+[[language]]
+name = "toml"
+language-servers = ["lspd-web"]
+
+[[language]]
+name = "xml"
+language-servers = ["lspd-web"]
+
+[[language]]
+name = "svg"
+language-servers = ["lspd-web"]
+
+[[language]]
+name = "markdown"
+language-servers = ["lspd-md"]
 
 [[language]]
 name = "typescript"
@@ -323,13 +422,14 @@ language-servers = ["lspd-ts"]
   "name": "lspd-client",
   "version": "0.1.0",
   "engines": { "vscode": "^1.84.0" },
-  "activationEvents": ["onLanguage:html", "onLanguage:typescript"],
+  "activationEvents": ["onLanguage:html", "onLanguage:typescript", "onLanguage:markdown"],
   "main": "./out/extension.js",
   "dependencies": { "vscode-languageclient": "^9.0.1" },
   "contributes": {
     "languages": [
       { "id": "html", "extensions": [".html", ".htm"] },
-      { "id": "typescript", "extensions": [".ts"] }
+      { "id": "typescript", "extensions": [".ts"] },
+      { "id": "markdown", "extensions": [".md"] }
     ]
   }
 }
@@ -346,7 +446,7 @@ const webClient = new LanguageClient(
   "lspd-web",
   "lspd (Web)",
   { command: lspd, args: ["web"], transport: TransportKind.stdio } as ServerOptions,
-  { documentSelector: ["html", "css", "scss", "less", "sass", "json"] }
+  { documentSelector: ["html", "css", "scss", "less", "sass", "json", "jsonc", "toml", "xml", "svg", "markdown"] }
 );
 
 const tsClient = new LanguageClient(
@@ -396,7 +496,12 @@ if executable('lspd')
     autocmd User lsp_setup call lsp#register_server({
       \ 'name': 'lspd-web',
       \ 'cmd': { server_info -> ['/usr/local/bin/lspd', 'web'] },
-      \ 'allowlist': ['html', 'css', 'scss', 'less', 'sass', 'json'],
+      \ 'allowlist': ['html', 'css', 'scss', 'less', 'sass', 'json', 'jsonc', 'toml', 'xml', 'svg'],
+      \ })
+    autocmd User lsp_setup call lsp#register_server({
+      \ 'name': 'lspd-md',
+      \ 'cmd': { server_info -> ['/usr/local/bin/lspd', 'md'] },
+      \ 'allowlist': ['markdown'],
       \ })
     autocmd User lsp_setup call lsp#register_server({
       \ 'name': 'lspd-ts',
@@ -419,7 +524,12 @@ endif
     "lspd-web": {
       "command": "/usr/local/bin/lspd",
       "args": ["web"],
-      "filetypes": ["html", "css", "scss", "less", "sass", "json"]
+      "filetypes": ["html", "css", "scss", "less", "sass", "json", "jsonc", "toml", "xml", "svg"]
+    },
+    "lspd-md": {
+      "command": "/usr/local/bin/lspd",
+      "args": ["md"],
+      "filetypes": ["markdown"]
     },
     "lspd-ts": {
       "command": "/usr/local/bin/lspd",
