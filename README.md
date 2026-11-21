@@ -124,6 +124,11 @@ JSON 有两种方言：`jsonc` 语言标识、`.jsonc` 扩展名，以及常见�
 （`tsconfig.json`、`jsconfig.json`、`.vscode/*.json`、`.eslintrc` 等）按 JSONC 解析，
 注释与尾随逗号都不报错；普通 `.json` 里的注释只给警告，不升级为错误。
 
+JSON Schema 默认离线：优先使用文档 `$schema` 指向的本地文件或内置 schema。需要识别远程 schema 时，
+显式设置 `LSPD_SCHEMA_REMOTE=1`（仅允许 `https://`，拒绝 localhost/私网地址，5s 超时、1MB 上限）。
+远程 schema 会缓存到 `LSPD_SCHEMA_CACHE_DIR`，未设置时使用 `XDG_CACHE_HOME/lspd/schemas` 或
+`~/.cache/lspd/schemas`。
+
 ### 换到任何编辑器都能用的三条自查
 
 下面所有编辑器的配置，本质都是同一件事。如果你的编辑器不在名单里，对照这三条判断能不能接：

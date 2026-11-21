@@ -1,8 +1,6 @@
 # Changelog
 
-Unreleased (post-v0.3.0)
-
-## 概述
+## v0.4.0
 
 补齐 YAML / Dockerfile 语言服务，并增强 JSON Schema 能力：支持本地 `$ref`/`$id`/组合关键字等常用子集，新增可控的远程 schema 加载（默认离线）。
 

@@ -217,6 +217,7 @@
             <dt>诊断</dt><dd>结构错误、未知属性、schema 约束</dd>
             <dt>结构</dt><dd>大纲、折叠、选择范围、标签联动改名</dd>
             <dt>颜色</dt><dd>内联色块与格式转换</dd>
+            <dt>Schema</dt><dd>本地/内置优先；远程需显式开启</dd>
           </dl>
         </div>
       </div>
@@ -255,7 +256,7 @@ Languages  TypeScript, TypeScript React, JavaScript, JavaScript React</code></pr
 <pre><code>Name       lspd md
 Command    /usr/local/bin/lspd md
 Languages  Markdown</code></pre>
-          <p class="panel-note">右上有 Global / This project 范围开关。内置的同类服务器要先关掉，否则两份补全互相打架。</p>
+          <p class="panel-note">右上有 Global / This project 范围开关。内置的同类服务器要先关掉，否则两份补全互相打架。JSON Schema 默认离线，远程 schema 需设置 <code>LSPD_SCHEMA_REMOTE=1</code>。</p>
         </div>
 
         
@@ -449,7 +450,7 @@ Get-FileHash .\lspd-x86_64-pc-windows-msvc.exe -Algorithm SHA256</code></pre>
 
 <footer class="site-footer">
   <div class="wrap footer-in">
-    <span class="footer-mark">lspd <span data-version>0.2.0</span></span>
+    <span class="footer-mark">lspd <span data-version>0.4.0</span></span>
     <span class="footer-meta" data-size>本站 JS — · CSS — · 无框架 · 无网络字体</span>
   </div>
 </footer>
