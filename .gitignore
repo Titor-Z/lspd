@@ -1,0 +1,27 @@
+# 构建产物
+/target
+/compiler/target
+**/*.rs.bk
+*.pdb
+
+# 私密资产：进度看板、讨论记录、发布记录与认知修正仅存本地
+AGENTS.md
+/docs/
+
+# 基准测试输出
+/bench-out
+
+# Python 脚本缓存
+__pycache__/
+*.pyc
+
+# 编辑器与系统文件
+.DS_Store
+.idea/
+.openidea/
+.vscode/
+*.swp
+
+# 环境变量文件
+.env
+.env.local
