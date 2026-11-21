@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "VSCode Extensions Recommendations",
+  "type": "object",
+  "properties": {
+    "recommendations": {
+      "type": "array",
+      "description": "推荐安装的扩展标识列表。",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unwantedRecommendations": {
+      "type": "array",
+      "description": "不推荐的扩展标识列表。",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

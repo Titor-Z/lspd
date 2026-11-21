@@ -1,0 +1,328 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TSConfig",
+  "type": "object",
+  "properties": {
+    "compilerOptions": {
+      "type": "object",
+      "description": "TypeScript 编译器选项。",
+      "properties": {
+        "target": {
+          "type": "string",
+          "description": "指定生成代码的 JavaScript 语言版本。",
+          "enum": [
+            "ES3",
+            "ES5",
+            "ES6",
+            "ES2015",
+            "ES2016",
+            "ES2017",
+            "ES2018",
+            "ES2019",
+            "ES2020",
+            "ES2021",
+            "ES2022",
+            "ES2023",
+            "ES2024",
+            "ESNext"
+          ]
+        },
+        "module": {
+          "type": "string",
+          "description": "指定生成的模块系统。",
+          "enum": [
+            "CommonJS",
+            "AMD",
+            "System",
+            "UMD",
+            "ES6",
+            "ES2015",
+            "ES2020",
+            "ES2022",
+            "ESNext",
+            "Node16",
+            "NodeNext",
+            "Preserve",
+            "None"
+          ]
+        },
+        "moduleResolution": {
+          "type": "string",
+          "description": "指定模块解析策略。",
+          "enum": [
+            "Classic",
+            "Node",
+            "Node10",
+            "Node16",
+            "NodeNext",
+            "Bundler"
+          ]
+        },
+        "lib": {
+          "type": "array",
+          "description": "指定编译时包含的库声明文件。",
+          "items": {
+            "type": "string"
+          }
+        },
+        "strict": {
+          "type": "boolean",
+          "description": "启用所有严格类型检查选项。"
+        },
+        "noImplicitAny": {
+          "type": "boolean",
+          "description": "对隐含 any 类型的表达式和声明报错。"
+        },
+        "strictNullChecks": {
+          "type": "boolean",
+          "description": "启用严格的 null 检查。"
+        },
+        "strictFunctionTypes": {
+          "type": "boolean",
+          "description": "启用函数类型的严格检查。"
+        },
+        "strictBindCallApply": {
+          "type": "boolean",
+          "description": "严格检查 bind、call、apply 的参数。"
+        },
+        "strictPropertyInitialization": {
+          "type": "boolean",
+          "description": "检查类属性是否在构造函数中初始化。"
+        },
+        "noImplicitThis": {
+          "type": "boolean",
+          "description": "this 表达式隐含 any 类型时报错。"
+        },
+        "alwaysStrict": {
+          "type": "boolean",
+          "description": "以严格模式解析并为每个源文件生成 \"use strict\"。"
+        },
+        "esModuleInterop": {
+          "type": "boolean",
+          "description": "为 CommonJS 模块导入生成兼容辅助代码，启用默认导入互操作。"
+        },
+        "allowSyntheticDefaultImports": {
+          "type": "boolean",
+          "description": "允许从没有默认导出的模块进行默认导入。"
+        },
+        "forceConsistentCasingInFileNames": {
+          "type": "boolean",
+          "description": "强制文件名大小写一致。"
+        },
+        "skipLibCheck": {
+          "type": "boolean",
+          "description": "跳过声明文件（.d.ts）的类型检查。"
+        },
+        "declaration": {
+          "type": "boolean",
+          "description": "生成对应的 .d.ts 声明文件。"
+        },
+        "declarationMap": {
+          "type": "boolean",
+          "description": "为声明文件生成 sourcemap。"
+        },
+        "sourceMap": {
+          "type": "boolean",
+          "description": "生成 .map sourcemap 文件。"
+        },
+        "outDir": {
+          "type": "string",
+          "description": "指定输出目录。"
+        },
+        "rootDir": {
+          "type": "string",
+          "description": "指定输入文件的根目录，用于控制输出目录结构。"
+        },
+        "baseUrl": {
+          "type": "string",
+          "description": "设置解析非相对模块名的基准目录。"
+        },
+        "paths": {
+          "type": "object",
+          "description": "模块名到基于 baseUrl 的路径映射。",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "types": {
+          "type": "array",
+          "description": "指定要包含的类型包名，不会自动包含 @types。",
+          "items": {
+            "type": "string"
+          }
+        },
+        "typeRoots": {
+          "type": "array",
+          "description": "指定类型声明文件的根目录。",
+          "items": {
+            "type": "string"
+          }
+        },
+        "resolveJsonModule": {
+          "type": "boolean",
+          "description": "允许导入 .json 文件。"
+        },
+        "allowJs": {
+          "type": "boolean",
+          "description": "允许编译 JavaScript 文件。"
+        },
+        "checkJs": {
+          "type": "boolean",
+          "description": "在 JavaScript 文件中报告类型错误。"
+        },
+        "jsx": {
+          "type": "string",
+          "description": "指定 JSX 代码生成方式。",
+          "enum": [
+            "preserve",
+            "react",
+            "react-native",
+            "react-jsx",
+            "react-jsxdev"
+          ]
+        },
+        "incremental": {
+          "type": "boolean",
+          "description": "启用增量编译，保存 .tsbuildinfo 加速后续构建。"
+        },
+        "composite": {
+          "type": "boolean",
+          "description": "启用项目引用所需的约束。"
+        },
+        "noEmit": {
+          "type": "boolean",
+          "description": "不输出编译结果，只做类型检查。"
+        },
+        "isolatedModules": {
+          "type": "boolean",
+          "description": "确保每个文件都可独立转译（不依赖其他文件的类型信息）。"
+        },
+        "verbatimModuleSyntax": {
+          "type": "boolean",
+          "description": "保留 import/export 的原始写法，不自动省略或改写。"
+        },
+        "allowImportingTsExtensions": {
+          "type": "boolean",
+          "description": "允许在 import 路径中写 .ts/.tsx 扩展名。"
+        },
+        "moduleDetection": {
+          "type": "string",
+          "description": "控制如何判定文件是模块还是脚本。",
+          "enum": [
+            "auto",
+            "legacy",
+            "force"
+          ]
+        },
+        "experimentalDecorators": {
+          "type": "boolean",
+          "description": "启用实验性的装饰器语法。"
+        },
+        "emitDecoratorMetadata": {
+          "type": "boolean",
+          "description": "为装饰器生成设计时类型元数据。"
+        },
+        "useDefineForClassFields": {
+          "type": "boolean",
+          "description": "使用 ECMAScript 标准语义生成类字段。"
+        },
+        "noUnusedLocals": {
+          "type": "boolean",
+          "description": "报告未使用的局部变量。"
+        },
+        "noUnusedParameters": {
+          "type": "boolean",
+          "description": "报告未使用的函数参数。"
+        },
+        "noFallthroughCasesInSwitch": {
+          "type": "boolean",
+          "description": "报告 switch 语句中的贯穿 case。"
+        },
+        "noUncheckedIndexedAccess": {
+          "type": "boolean",
+          "description": "索引访问时在类型中加入 undefined。"
+        },
+        "exactOptionalPropertyTypes": {
+          "type": "boolean",
+          "description": "区分可选属性的 undefined 与未设置。"
+        },
+        "noImplicitReturns": {
+          "type": "boolean",
+          "description": "函数并非所有代码路径都返回值时报错。"
+        },
+        "removeComments": {
+          "type": "boolean",
+          "description": "输出时移除注释。"
+        },
+        "newLine": {
+          "type": "string",
+          "description": "指定输出文件的换行符。",
+          "enum": [
+            "crlf",
+            "lf"
+          ]
+        },
+        "plugins": {
+          "type": "array",
+          "description": "要加载的 TypeScript 语言服务插件。",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "插件包名。"
+              }
+            }
+          }
+        }
+      }
+    },
+    "include": {
+      "type": "array",
+      "description": "指定要包含在程序中的文件或 glob 模式。",
+      "items": {
+        "type": "string"
+      }
+    },
+    "exclude": {
+      "type": "array",
+      "description": "指定解析 include 时要排除的文件或 glob 模式。",
+      "items": {
+        "type": "string"
+      }
+    },
+    "files": {
+      "type": "array",
+      "description": "指定要包含的文件列表。",
+      "items": {
+        "type": "string"
+      }
+    },
+    "extends": {
+      "description": "继承另一个配置文件的设置。",
+      "type": [
+        "string",
+        "array"
+      ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "references": {
+      "type": "array",
+      "description": "项目引用列表，用于 composite 项目。",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "被引用项目的路径。"
+          }
+        }
+      }
+    }
+  }
+}

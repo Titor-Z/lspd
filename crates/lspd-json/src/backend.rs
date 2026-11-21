@@ -103,6 +103,7 @@ impl Backend for JsonBackend {
     fn capabilities(&self) -> Value {
         json!({
             "completionProvider": { "triggerCharacters": ["\"", ":", ",", "{", "[", " "] },
+            "hoverProvider": true,
             "documentSymbolProvider": true,
             "foldingRangeProvider": true,
         })
@@ -152,6 +153,18 @@ impl Backend for JsonBackend {
 
                 let items = schema::completion(document.text(), &cache.parsed.value, cache.schema.as_ref(), offset);
                 Some(Ok(json!({ "isIncomplete": false, "items": items })))
+            }
+            "textDocument/hover" => {
+                let params: PositionParams = serde_json::from_str(params?.get()).ok()?;
+                let document = documents.get(&params.text_document.uri)?;
+                self.ensure(document);
+                let cache = self.cache.as_ref().expect("刚写入缓存");
+                let offset = document.offset_at(params.position) as u32;
+
+                let result = schema::hover(&cache.parsed.value, cache.schema.as_ref(), offset)
+                    .map(|text| json!({ "contents": { "kind": "markdown", "value": text } }))
+                    .unwrap_or(Value::Null);
+                Some(Ok(result))
             }
             // 不认识的方法交还核心层，由其他后端或统一的「方法不存在」应答处理
             _ => None,

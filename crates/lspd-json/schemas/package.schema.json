@@ -1,0 +1,142 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "package.json",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "包名。发布到 npm 时必须唯一。"
+    },
+    "version": {
+      "type": "string",
+      "description": "包版本号，建议遵循 SemVer。"
+    },
+    "description": {
+      "type": "string",
+      "description": "包的简短说明。"
+    },
+    "private": {
+      "type": "boolean",
+      "description": "设为 true 可防止包被意外发布。"
+    },
+    "type": {
+      "type": "string",
+      "description": "模块格式。module 表示 ESM，commonjs 表示 CommonJS。",
+      "enum": [
+        "module",
+        "commonjs"
+      ]
+    },
+    "main": {
+      "type": "string",
+      "description": "CommonJS/默认入口文件。"
+    },
+    "module": {
+      "type": "string",
+      "description": "ESM 打包入口（部分工具识别）。"
+    },
+    "types": {
+      "type": "string",
+      "description": "TypeScript 类型声明入口。"
+    },
+    "exports": {
+      "type": [
+        "object",
+        "string"
+      ],
+      "description": "包导出映射，控制外部可导入的入口。"
+    },
+    "files": {
+      "type": "array",
+      "description": "发布到 npm 时包含的文件或目录。",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scripts": {
+      "type": "object",
+      "description": "可通过 npm run 执行的脚本命令。",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "dependencies": {
+      "type": "object",
+      "description": "运行时依赖。",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "devDependencies": {
+      "type": "object",
+      "description": "开发时依赖。",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "peerDependencies": {
+      "type": "object",
+      "description": "宿主环境应提供的依赖。",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "optionalDependencies": {
+      "type": "object",
+      "description": "可选依赖，安装失败不会导致整体安装失败。",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "engines": {
+      "type": "object",
+      "description": "运行环境版本要求。",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "packageManager": {
+      "type": "string",
+      "description": "声明项目使用的包管理器及版本，例如 pnpm@9.0.0。"
+    },
+    "workspaces": {
+      "type": [
+        "array",
+        "object"
+      ],
+      "description": "monorepo 工作区配置。"
+    },
+    "repository": {
+      "type": [
+        "object",
+        "string"
+      ],
+      "description": "源码仓库地址。"
+    },
+    "license": {
+      "type": "string",
+      "description": "许可证标识，例如 MIT、Apache-2.0。"
+    },
+    "author": {
+      "type": [
+        "string",
+        "object"
+      ],
+      "description": "作者信息。"
+    },
+    "bin": {
+      "type": [
+        "string",
+        "object"
+      ],
+      "description": "可执行命令映射。"
+    },
+    "keywords": {
+      "type": "array",
+      "description": "用于检索的关键词。",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

@@ -1,7 +1,9 @@
-//! 离线 JSON Schema：从 `$schema` 指向的本地文件加载，做子集校验。
+//! 离线 JSON Schema：加载本地/内置 schema，提供校验、补全与悬停。
 //!
+//! 优先使用文档 `$schema` 指向的本地文件；未声明时按文件名匹配内置 schema。
 //! 只实现常用关键字子集：`type` / `enum` / `const` / `required` / `properties` /
-//! `additionalProperties` / `items` / `minimum`–`maximum` / `minLength`–`maxLength` / `pattern`。
+//! `additionalProperties` / `items` / `minimum`–`maximum` / `minLength`–`maxLength` /
+//! `pattern` / `description` / `markdownDescription` / `default`。
 //! 不解析 `$ref`/`$id`、不访问网络。
 
 use lspd_core::text::{LineIndex, Span};
@@ -15,12 +17,63 @@ mod level {
     pub const WARNING: u8 = 2;
 }
 
-/// 从根节点的 `$schema` 成员加载本地 schema；缺失、`http(s)`、读不到或解析失败都返回 `None`。
+/// 内置 schema，构建期嵌入，运行时不读盘不联网。
+const TSCONFIG_SCHEMA: &str = include_str!("../schemas/tsconfig.schema.json");
+const PACKAGE_SCHEMA: &str = include_str!("../schemas/package.schema.json");
+const VSCODE_SETTINGS_SCHEMA: &str = include_str!("../schemas/vscode-settings.schema.json");
+const VSCODE_EXTENSIONS_SCHEMA: &str = include_str!("../schemas/vscode-extensions.schema.json");
+const VSCODE_TASKS_SCHEMA: &str = include_str!("../schemas/vscode-tasks.schema.json");
+const VSCODE_LAUNCH_SCHEMA: &str = include_str!("../schemas/vscode-launch.schema.json");
+
+/// 从根节点 `$schema` 或文件名映射加载 schema。
+///
+/// 优先级：文档显式 `$schema`（本地/file://）> 内置文件名映射 > 无。
 pub fn load(source: &str, root: &Json, document_uri: &str) -> Option<Value> {
-    let reference = schema_reference(root, source)?;
-    let path = resolve_path(&reference, document_uri)?;
+    if let Some(reference) = schema_reference(root, source) {
+        if let Some(path) = resolve_path(&reference, document_uri) {
+            if let Some(schema) = read_schema_file(&path) {
+                return Some(schema);
+            }
+        }
+
+        // 显式声明了 $schema 但无法离线加载：不再回退内置，避免误导
+        return None;
+    }
+
+    builtin_schema(document_uri)
+}
+
+/// 读取并解析 schema 文件。
+fn read_schema_file(path: &std::path::Path) -> Option<Value> {
     let text = std::fs::read_to_string(path).ok()?;
     serde_json::from_str::<Value>(&text).ok()
+}
+
+/// 按文件名命中内置 schema。
+fn builtin_schema(document_uri: &str) -> Option<Value> {
+    let name = file_name(document_uri);
+    let source = match name {
+        _ if is_tsconfig_name(name) => TSCONFIG_SCHEMA,
+        "package.json" => PACKAGE_SCHEMA,
+        "settings.json" => VSCODE_SETTINGS_SCHEMA,
+        "extensions.json" => VSCODE_EXTENSIONS_SCHEMA,
+        "tasks.json" => VSCODE_TASKS_SCHEMA,
+        "launch.json" => VSCODE_LAUNCH_SCHEMA,
+        _ => return None,
+    };
+
+    serde_json::from_str::<Value>(source).ok()
+}
+
+/// tsconfig/jsconfig 家族文件名判断。
+fn is_tsconfig_name(name: &str) -> bool {
+    (name.starts_with("tsconfig") || name.starts_with("jsconfig")) && name.ends_with(".json")
+}
+
+/// 从 URI/路径里取文件名。
+fn file_name(document_uri: &str) -> &str {
+    let path = document_uri.split(['?', '#']).next().unwrap_or(document_uri);
+    path.rsplit('/').next().unwrap_or(path)
 }
 
 /// 取顶层对象里 `$schema` 的字符串值（已解码）。
@@ -78,10 +131,10 @@ pub fn completion(source: &str, root: &Json, schema: Option<&Value>, offset: u32
         return Vec::new();
     };
 
-    let (container, container_schema) = locate(root, root_schema, source, offset);
+    let located = locate(root, root_schema, offset);
     let line_start = start_of_line(source, offset);
 
-    match container {
+    match located.node {
         Json::Object { members, .. } => {
             // 当前行上、光标落在某个成员的值区间内（缺失值时为其插入点）→ 值补全
             let value_member = members.iter().find(|member| {
@@ -90,7 +143,8 @@ pub fn completion(source: &str, root: &Json, schema: Option<&Value>, offset: u32
             });
 
             if let Some(member) = value_member {
-                let sub = container_schema
+                let sub = located
+                    .schema
                     .get("properties")
                     .and_then(|props| props.get(&member.key_name))
                     .unwrap_or(&Value::Null);
@@ -98,40 +152,147 @@ pub fn completion(source: &str, root: &Json, schema: Option<&Value>, offset: u32
             }
 
             // 键位置：补尚未出现的属性名
-            key_items(container_schema, members, container.span() == root.span())
+            key_items(located.schema, members, located.node.span() == root.span())
         }
         Json::Array { .. } => {
-            let sub = container_schema.get("items").unwrap_or(&Value::Null);
+            let sub = located.schema.get("items").unwrap_or(&Value::Null);
             value_items(sub)
         }
-        _ => value_items(container_schema),
+        _ => value_items(located.schema),
     }
 }
 
-/// 下钻到包含 `offset` 的最深容器（对象/数组），并同步带上其子 schema。
-fn locate<'s>(node: &'s Json, schema: &'s Value, source: &str, offset: u32) -> (&'s Json, &'s Value) {
+/// 依据 schema 给出悬停信息：键给属性说明，值给类型/默认值/枚举说明。
+pub fn hover(root: &Json, schema: Option<&Value>, offset: u32) -> Option<String> {
+    let schema = schema?;
+    let located = locate(root, schema, offset);
+
+    match located.kind {
+        HitKind::Key => hover_for_key(located.key_name?, located.schema),
+        HitKind::Value => hover_for_value(located.key_name, located.schema),
+    }
+}
+
+/// 生成键悬停内容。
+fn hover_for_key(key: &str, schema: &Value) -> Option<String> {
+    if !schema.is_object() || schema.as_object().is_some_and(|item| item.is_empty()) {
+        return None;
+    }
+
+    let mut lines = vec![format!("`{key}`")];
+    push_schema_details(&mut lines, schema);
+    Some(lines.join("\n\n"))
+}
+
+/// 生成值悬停内容。
+fn hover_for_value(key: Option<&str>, schema: &Value) -> Option<String> {
+    if !schema.is_object() || schema.as_object().is_some_and(|item| item.is_empty()) {
+        return None;
+    }
+
+    let mut lines = Vec::new();
+    if let Some(key) = key {
+        lines.push(format!("`{key}`"));
+    }
+    push_schema_details(&mut lines, schema);
+
+    (lines.len() > (usize::from(key.is_some()))).then(|| lines.join("\n\n"))
+}
+
+/// 把 schema 的说明性字段追加到悬停文本。
+fn push_schema_details(lines: &mut Vec<String>, schema: &Value) {
+    let description = schema
+        .get("markdownDescription")
+        .or_else(|| schema.get("description"))
+        .and_then(Value::as_str);
+    if let Some(description) = description {
+        lines.push(description.to_string());
+    }
+
+    if let Some(types) = schema.get("type") {
+        let text = describe_type(types);
+        if !text.is_empty() {
+            lines.push(format!("类型：`{text}`"));
+        }
+    }
+
+    if let Some(default) = schema.get("default") {
+        lines.push(format!("默认值：`{}`", compact_json(default)));
+    }
+
+    if let Some(allowed) = schema.get("enum").and_then(Value::as_array) {
+        let values: Vec<String> = allowed.iter().map(compact_json).collect();
+        if !values.is_empty() {
+            lines.push(format!("可选值：{}", values.join(", ")));
+        }
+    }
+}
+
+/// 把 JSON 值压成简短文本，供 hover 展示。
+fn compact_json(value: &Value) -> String {
+    match value {
+        Value::String(text) => format!("\"{text}\""),
+        _ => value.to_string(),
+    }
+}
+
+/// 命中的位置：键、值或容器自身。
+#[derive(Debug, Clone, Copy)]
+enum HitKind {
+    /// 光标落在对象键上
+    Key,
+    /// 光标落在值上
+    Value,
+}
+
+/// 下钻结果：节点、对应 schema、以及命中的是键还是值。
+struct Located<'s> {
+    node: &'s Json,
+    schema: &'s Value,
+    kind: HitKind,
+    /// 若命中对象成员，给出成员键名（hover 时显示属性名）
+    key_name: Option<&'s str>,
+}
+
+/// 下钻到包含 `offset` 的最深节点，并同步带上其子 schema。
+fn locate<'s>(node: &'s Json, schema: &'s Value, offset: u32) -> Located<'s> {
     match node {
         Json::Object { members, .. } => {
             for member in members {
-                if member.value.span().contains(offset) || member.key.contains(offset) {
-                    let sub = schema.get("properties").and_then(|props| props.get(&member.key_name)).unwrap_or(&Value::Null);
+                if member.key.contains(offset) {
+                    let sub = schema
+                        .get("properties")
+                        .and_then(|props| props.get(&member.key_name))
+                        .unwrap_or(&Value::Null);
+                    return Located { node: &member.value, schema: sub, kind: HitKind::Key, key_name: Some(&member.key_name) };
+                }
+
+                if member.value.span().contains(offset) {
+                    let sub = schema
+                        .get("properties")
+                        .and_then(|props| props.get(&member.key_name))
+                        .unwrap_or(&Value::Null);
                     if matches!(member.value, Json::Object { .. } | Json::Array { .. }) {
-                        return locate(&member.value, sub, source, offset);
+                        return locate(&member.value, sub, offset);
                     }
+                    return Located { node: &member.value, schema: sub, kind: HitKind::Value, key_name: Some(&member.key_name) };
                 }
             }
-            (node, schema)
+            Located { node, schema, kind: HitKind::Value, key_name: None }
         }
         Json::Array { items, .. } => {
             let sub = schema.get("items").unwrap_or(&Value::Null);
             for item in items {
-                if item.span().contains(offset) && matches!(item, Json::Object { .. } | Json::Array { .. }) {
-                    return locate(item, sub, source, offset);
+                if item.span().contains(offset) {
+                    if matches!(item, Json::Object { .. } | Json::Array { .. }) {
+                        return locate(item, sub, offset);
+                    }
+                    return Located { node: item, schema: sub, kind: HitKind::Value, key_name: None };
                 }
             }
-            (node, schema)
+            Located { node, schema, kind: HitKind::Value, key_name: None }
         }
-        _ => (node, schema),
+        _ => Located { node, schema, kind: HitKind::Value, key_name: None },
     }
 }
 
@@ -512,5 +673,49 @@ mod tests {
         let offset = (r#"{ "env": "#).len() as u32;
         let labels = completion_labels(schema, r#"{ "env": "#, offset);
         assert!(labels.contains(&"dev".to_string()) && labels.contains(&"prod".to_string()), "{labels:?}");
+    }
+
+    /// 键悬停应返回描述、类型与枚举信息。
+    #[test]
+    fn hover_on_key_shows_description() {
+        let schema = r#"{ "type": "object", "properties": { "target": { "type": "string", "description": "输出目标", "enum": ["ES5", "ESNext"] } } }"#;
+        let document = r#"{ "target": "ES5" }"#;
+        let offset = document.find("target").unwrap() as u32 + 1;
+        let parsed = parse(document);
+        let schema_value: Value = serde_json::from_str(schema).unwrap();
+        let text = hover(&parsed.value, Some(&schema_value), offset).expect("应有 hover");
+        assert!(text.contains("输出目标"), "{text}");
+        assert!(text.contains("string"), "{text}");
+        assert!(text.contains("ESNext"), "{text}");
+    }
+
+    /// 值悬停也应给出属性说明。
+    #[test]
+    fn hover_on_value_shows_description() {
+        let schema = r#"{ "type": "object", "properties": { "strict": { "type": "boolean", "description": "严格模式" } } }"#;
+        let document = r#"{ "strict": true }"#;
+        let offset = document.find("true").unwrap() as u32;
+        let parsed = parse(document);
+        let schema_value: Value = serde_json::from_str(schema).unwrap();
+        let text = hover(&parsed.value, Some(&schema_value), offset).expect("应有 hover");
+        assert!(text.contains("严格模式"), "{text}");
+        assert!(text.contains("boolean"), "{text}");
+    }
+
+    /// 内置 schema 应覆盖常见配置文件。
+    #[test]
+    fn builtin_schemas_are_available() {
+        for (uri, key) in [
+            ("file:///p/tsconfig.json", "compilerOptions"),
+            ("file:///p/jsconfig.json", "compilerOptions"),
+            ("file:///p/package.json", "name"),
+            ("file:///p/.vscode/settings.json", "editor.formatOnSave"),
+            ("file:///p/.vscode/extensions.json", "recommendations"),
+            ("file:///p/.vscode/tasks.json", "tasks"),
+            ("file:///p/.vscode/launch.json", "configurations"),
+        ] {
+            let schema = builtin_schema(uri).unwrap_or_else(|| panic!("{uri} 应命中内置 schema"));
+            assert!(schema["properties"].get(key).is_some(), "{uri} 缺少 {key}");
+        }
     }
 }

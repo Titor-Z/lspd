@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "VSCode Tasks",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "tasks 配置版本。",
+      "enum": [
+        "2.0.0"
+      ]
+    },
+    "tasks": {
+      "type": "array",
+      "description": "任务定义列表。",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "任务名称，在任务列表中显示。"
+          },
+          "type": {
+            "type": "string",
+            "description": "任务类型。shell 运行命令，process 直接启动进程。",
+            "enum": [
+              "shell",
+              "process"
+            ]
+          },
+          "command": {
+            "type": "string",
+            "description": "要执行的命令。"
+          },
+          "args": {
+            "type": "array",
+            "description": "命令参数。",
+            "items": {
+              "type": "string"
+            }
+          },
+          "group": {
+            "type": [
+              "string",
+              "object"
+            ],
+            "description": "任务分组，例如 build 或 test。"
+          },
+          "problemMatcher": {
+            "type": [
+              "string",
+              "array",
+              "object"
+            ],
+            "description": "用于解析输出问题的匹配器。"
+          },
+          "isBackground": {
+            "type": "boolean",
+            "description": "任务是否在后台持续运行。"
+          },
+          "dependsOn": {
+            "type": [
+              "string",
+              "array"
+            ],
+            "description": "当前任务依赖的其他任务。"
+          },
+          "detail": {
+            "type": "string",
+            "description": "任务的额外说明。"
+          }
+        }
+      }
+    }
+  }
+}

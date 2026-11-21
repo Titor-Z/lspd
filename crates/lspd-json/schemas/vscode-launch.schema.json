@@ -1,0 +1,101 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "VSCode Launch",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "launch 配置版本。",
+      "enum": [
+        "0.2.0"
+      ]
+    },
+    "configurations": {
+      "type": "array",
+      "description": "调试/运行配置列表。",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "配置名称。"
+          },
+          "type": {
+            "type": "string",
+            "description": "调试器类型。"
+          },
+          "request": {
+            "type": "string",
+            "description": "请求类型。",
+            "enum": [
+              "launch",
+              "attach"
+            ]
+          },
+          "program": {
+            "type": "string",
+            "description": "要启动的程序。"
+          },
+          "args": {
+            "type": "array",
+            "description": "程序参数。",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cwd": {
+            "type": "string",
+            "description": "工作目录。"
+          },
+          "env": {
+            "type": "object",
+            "description": "环境变量。",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "console": {
+            "type": "string",
+            "description": "控制台类型。",
+            "enum": [
+              "internalConsole",
+              "integratedTerminal",
+              "externalTerminal"
+            ]
+          },
+          "preLaunchTask": {
+            "type": "string",
+            "description": "启动前先执行的任务 label。"
+          },
+          "outFiles": {
+            "type": "array",
+            "description": "调试器用于映射源码的输出文件 glob。",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "compounds": {
+      "type": "array",
+      "description": "组合多个配置同时启动。",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "组合配置名称。"
+          },
+          "configurations": {
+            "type": "array",
+            "description": "要同时启动的配置名称。",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}
